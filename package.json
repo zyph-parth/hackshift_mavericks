@@ -1,0 +1,13 @@
+{
+  "name": "launchloop",
+  "private": true,
+  "version": "0.2.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev -w @launchloop/api\" \"npm run dev -w @launchloop/web\"",
+    "build": "npm run build -w @launchloop/web",
+    "typecheck": "npm run typecheck -w @launchloop/web && npm run typecheck -w @launchloop/api",
+    "test": "npm run test -w @launchloop/shared"
+  },
+  "devDependencies": { "concurrently": "^9.2.1" }
+}
