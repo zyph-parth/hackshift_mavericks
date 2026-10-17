@@ -20,7 +20,7 @@ export default function Report() {
     );
   const strengths = last.detail.filter((d) => d.score >= 75);
   const improve = last.detail.filter((d) => d.score < 75);
-  const left = Math.max(0, 3 - (data?.attempts ?? 0));
+  const left = Math.max(0, (data?.attemptCap ?? 3) - (data?.attempts ?? 0));
   return (
     <>
       <PageHeader eyebrow="Interview report" title="How you did" sub="Every score is tied to your actual answer." actions={left > 0 ? <LinkButton to="/interview/new" variant="outline"><RotateCcw size={15} /> Retake ({left} left)</LinkButton> : <Badge>No attempts left</Badge>} />

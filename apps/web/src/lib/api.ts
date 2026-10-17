@@ -81,6 +81,8 @@ export interface Me extends PublicUser {
   activeRole: Role;
   onboarded: boolean;
   plan: 'free' | 'pro';
+  /** When Pro ends (ms), if on Pro. */
+  planUntil?: number;
   githubChallenge: { username: string; code: string } | null;
   founder?: { has: string[]; needs: string[]; commitment: 'Full-time' | 'Part-time'; stage: string; values: string[] };
   mentorId?: string;

@@ -13,7 +13,7 @@ import { api, type PublicUser } from '@/lib/api';
 import { useNotices, useThreads } from '@/lib/queries';
 import { useHotkey, useMedia } from '@/lib/hooks';
 import { cn, EASE } from '@/lib/utils';
-import { Avatar, Kbd, Logo, Segmented, ThemeToggle, Toaster } from './ui';
+import { Avatar, Badge, Kbd, Logo, Segmented, ThemeToggle, Toaster } from './ui';
 
 interface NavItem { to: string; label: string; icon: LucideIcon; badge?: 'inbox' }
 export const NAV: Record<Role, NavItem[]> = {
@@ -178,7 +178,7 @@ function AccountMenu() {
       <AnimatePresence>
         {open && (
           <motion.div initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.16, ease: EASE }} className="card glass absolute right-0 top-full z-40 mt-2 w-60 origin-top-right p-1.5 shadow-2xl">
-            <div className="px-3 py-2.5"><p className="truncate text-sm font-medium">{user.name}</p><p className="truncate text-xs text-muted">{user.email}</p></div>
+            <div className="px-3 py-2.5"><p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{user.name}</span>{user.plan === 'pro' && <Badge tone="accent">Pro</Badge>}</p><p className="truncate text-xs text-muted">{user.email}</p></div>
             <div className="my-1 h-px bg-border" />
             {user.roles.includes('talent') && <MenuItem icon={UserRound} onClick={() => go('/profile')}>Your profile</MenuItem>}
             <MenuItem icon={Settings} onClick={() => go('/settings')}>Settings</MenuItem>

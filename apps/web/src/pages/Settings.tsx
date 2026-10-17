@@ -1,16 +1,66 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, Check, FlaskConical, Mic, Moon, Sun } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Role } from '@launchloop/shared';
 import { Badge, Button, Card, ChipInput, Field, Input, Modal, PageHeader, Segmented, Switch, Textarea } from '@/components/ui';
 import { useApp } from '@/lib/store';
-import { api, post } from '@/lib/api';
+import { ApiError, api, post } from '@/lib/api';
+import { openCheckout, type Order } from '@/lib/razorpay';
 import { errMsg } from '@/lib/queries';
 import { FOUNDER_SKILLS, FOUNDER_VALUES } from '@/lib/content';
+import { inr } from '@/lib/utils';
 
 function Section({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return <Card className="p-6"><h2 className="tight font-semibold">{title}</h2>{sub && <p className="mt-0.5 text-sm text-muted">{sub}</p>}<div className="mt-5 space-y-4">{children}</div></Card>;
+}
+
+/** Pro plan: Razorpay Checkout for the payment, then the server verifies the signed result before upgrading. */
+function PlanSection() {
+  const user = useApp((s) => s.user)!;
+  const setUser = useApp((s) => s.setUser);
+  const toast = useApp((s) => s.toast);
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const cfg = useQuery({ queryKey: ['billing', 'config'], queryFn: () => api<{ enabled: boolean; testMode: boolean; priceInr: number; days: number; interviewAttempts: number }>('/billing/config') });
+  const pro = user.plan === 'pro';
+  const until = user.planUntil ? new Date(user.planUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+  const upgrade = async () => {
+    setBusy(true);
+    try {
+      const order = await post<Order>('/billing/order');
+      const result = await openCheckout(order, `LaunchLoop Pro, ${cfg.data?.days ?? 30} days`);
+      if (!result) return; // closed the window
+      const d = await post<{ user: typeof user }>('/billing/verify', result);
+      setUser(d.user);
+      await qc.invalidateQueries();
+      toast({ title: 'Pro is active', body: 'Thanks. Your extra interview attempts are available now.', tone: 'good' });
+    } catch (e) {
+      toast({ title: errMsg(e instanceof Error && !(e instanceof ApiError) ? new ApiError(0, 'pay', e.message) : e), tone: 'warn' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Plan" sub="Free covers everything you need to prove yourself. Pro adds room to retry.">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-medium">{pro ? 'Pro' : 'Free'} {pro && <Badge tone="accent">Active until {until}</Badge>}</p>
+          <ul className="mt-2 space-y-1 text-[13px] text-muted">
+            <li>{pro ? cfg.data?.interviewAttempts ?? 10 : 3} AI interview attempts</li>
+            {!pro && cfg.data && <li>Pro: {cfg.data.interviewAttempts} attempts for {inr(cfg.data.priceInr)} per {cfg.data.days} days</li>}
+          </ul>
+        </div>
+        {cfg.data?.enabled ? (
+          <Button variant="primary" loading={busy} onClick={upgrade}>{pro ? `Extend by ${cfg.data.days} days` : `Upgrade to Pro · ${inr(cfg.data.priceInr)}`}</Button>
+        ) : cfg.isSuccess ? <p className="text-[13px] text-muted">Payments are not configured on this server.</p> : null}
+      </div>
+      {cfg.data?.testMode && <p className="text-xs text-faint">Test mode: no real money moves. Pay with one of Razorpay&apos;s test cards or test UPI.</p>}
+    </Section>
+  );
 }
 
 export default function Settings() {
@@ -77,6 +127,8 @@ export default function Settings() {
           <Button variant="primary" loading={busy === 'founder'} onClick={() => run('founder', () => updateMe({ founder: fnd }).then(() => qc.invalidateQueries({ queryKey: ['cofounders'] })), 'Matching profile saved')}>Save</Button>
         </Section>
       )}
+
+      {user.roles.includes('talent') && <PlanSection />}
 
       <Section title="Roles" sub="Use LaunchLoop as more than one thing. Switch from the top bar.">
         <div className="flex flex-wrap gap-2">{user.roles.map((r) => <Badge key={r} tone="accent" className="capitalize">{r}</Badge>)}</div>

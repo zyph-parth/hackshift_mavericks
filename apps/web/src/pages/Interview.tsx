@@ -15,7 +15,7 @@ export default function Interview() {
   const nav = useNavigate();
   const toast = useApp((s) => s.toast);
   const qc = useQueryClient();
-  const qs = useQuery({ queryKey: ['interview', 'questions'], staleTime: 0, gcTime: 0, queryFn: () => api<{ questions: { q: string; skill: string }[]; retakesLeft: number }>('/interview/questions') });
+  const qs = useQuery({ queryKey: ['interview', 'questions'], staleTime: 0, gcTime: 0, queryFn: () => api<{ questions: { q: string; skill: string }[]; retakesLeft: number; attemptCap: number }>('/interview/questions') });
   const QUESTIONS = qs.data?.questions ?? [];
   const [phase, setPhase] = useState<'intro' | 'live' | 'grading' | 'reveal'>('intro');
   const [idx, setIdx] = useState(0);
@@ -161,7 +161,7 @@ export default function Interview() {
               <li className="flex items-center gap-2"><Keyboard size={14} className="text-accent" /> Press <kbd className="num rounded border border-border-strong bg-surface-2 px-1.5 text-xs">Space</kbd> to start and stop talking</li>
             </ul>
             <Button variant="primary" size="lg" className="mt-8" disabled={!QUESTIONS.length || retakesLeft === 0} loading={qs.isLoading} onClick={() => setPhase('live')}>{retakesLeft === 0 && !qs.isLoading ? 'No attempts left' : <>Begin interview <ArrowRight size={16} /></>}</Button>
-            <p className="mt-3 text-xs text-faint">{qs.isError ? errMsg(qs.error) : `Attempts left: ${retakesLeft} of 3`}</p>
+            <p className="mt-3 text-xs text-faint">{qs.isError ? errMsg(qs.error) : `Attempts left: ${retakesLeft} of ${qs.data?.attemptCap ?? 3}`}</p>
           </motion.main>
         )}
 

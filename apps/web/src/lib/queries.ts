@@ -44,7 +44,7 @@ export const useThreads = () => useQuery({ queryKey: ['threads'], enabled: enabl
 export const useThread = (id?: string) =>
   useQuery({ queryKey: ['thread', id], enabled: !!id, refetchInterval: 4000, queryFn: () => api<{ thread: ThreadRow; messages: MessageT[] }>(`/threads/${id}`) });
 export const useNotices = () => useQuery({ queryKey: ['notices'], enabled: enabled(), refetchInterval: 10_000, queryFn: () => api<{ notices: NoticeT[]; unread: number }>('/notices') });
-export const useLatestInterview = () => useQuery({ queryKey: ['interview', 'latest'], queryFn: () => api<{ interview: (InterviewResultT & { created: number }) | null; attempts: number }>('/interview/latest') });
+export const useLatestInterview = () => useQuery({ queryKey: ['interview', 'latest'], queryFn: () => api<{ interview: (InterviewResultT & { created: number }) | null; attempts: number; attemptCap: number }>('/interview/latest') });
 export const useStats = () => useQuery({ queryKey: ['stats'], queryFn: () => api<{ talents: number; startups: number; tasksPaid: number; mentorHours: number; openJobs: number }>('/stats') });
 
 /** Call after any mutation that changes the user's evidence so everything re-ranks. */

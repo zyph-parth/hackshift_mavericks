@@ -12,7 +12,7 @@ db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 
 export const COLLECTIONS = [
   'users', 'jobs', 'tasks', 'applications', 'submissions', 'bookings', 'threads', 'messages',
-  'notices', 'interviews', 'ventures', 'payments', 'saved', 'ai_cache', 'mentors', 'proposals',
+  'notices', 'interviews', 'ventures', 'payments', 'billing', 'saved', 'ai_cache', 'mentors', 'proposals',
 ] as const;
 export type Collection = (typeof COLLECTIONS)[number];
 

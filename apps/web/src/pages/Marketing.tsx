@@ -88,7 +88,7 @@ export function HowItWorks() {
 export function Pricing() {
   return (
     <>
-      <PageHero eyebrow="Pricing" title={<>Free to prove. Pay only to <span className="display">hire.</span></>} sub="Talent never pays. Founders get the full studio. Recruiters pay a small share only when they accept work they value." />
+      <PageHero eyebrow="Pricing" title={<>Free to prove. Pay only to <span className="display">hire.</span></>} sub="Talent is free, with an optional Pro plan for more interview attempts. Founders get the full studio. Recruiters pay a small share only when they accept work they value." />
       <section className="mx-auto max-w-[1200px] px-4 py-16 md:px-6">
         <div className="grid gap-5 md:grid-cols-3">
           {PRICING.map((p, i) => (

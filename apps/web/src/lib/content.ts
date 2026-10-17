@@ -90,7 +90,7 @@ export const FAQ: { q: string; a: string; group: 'Talent' | 'Hiring' | 'Platform
 ];
 
 export const PRICING = [
-  { name: 'Talent', price: '₹0', per: 'forever', blurb: 'Everything you need to prove yourself and get hired.', features: ['3 AI voice interviews', 'GitHub account linking', 'Unlimited applications', 'Match explanations', 'Public proof profile', 'Paid proof tasks'], cta: 'Start free', highlight: false },
+  { name: 'Talent', price: '₹0', per: 'forever', blurb: 'Everything you need to prove yourself and get hired.', features: ['3 AI voice interviews (10 with Pro)', 'GitHub account linking', 'Unlimited applications', 'Match explanations', 'Public proof profile', 'Paid proof tasks'], cta: 'Start free', highlight: false },
   { name: 'Founder', price: '₹999', per: 'per month', blurb: 'Validate, fund and build your first team.', features: ['Idea validator and Lean Canvas', 'Readiness radar', 'Scheme eligibility checker', 'Co-founder matching', 'Pitch deck review', 'Post roles and tasks'], cta: 'Start free for 14 days', highlight: true },
   { name: 'Recruiter', price: '8%', per: 'of task rewards', blurb: 'Pay only when you find someone worth hiring.', features: ['Unlimited roles', 'Blind AI-ranked shortlists', 'Kanban pipeline', 'Verified talent search', 'AI job description writer', 'Escrow-funded tasks'], cta: 'Start hiring', highlight: false },
 ];

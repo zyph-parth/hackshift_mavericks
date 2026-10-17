@@ -54,6 +54,8 @@ export interface UserData {
   mentorId?: string;
   founder?: Omit<FounderProfile, 'id' | 'name' | 'hue' | 'headline' | 'location'>;
   plan: 'free' | 'pro';
+  /** When Pro ends (ms). A plan of 'pro' with a past date is treated as free. */
+  planUntil?: number;
   seeded?: boolean;
   /** Set only after the user proved they control this GitHub account (see /api/me/github/verify). */
   github?: { username: string; verifiedAt: number; importedAt?: number };
@@ -175,8 +177,19 @@ export function publicUser(u: UserDoc) {
   };
 }
 
+export const effectivePlan = (d: Pick<UserData, 'plan' | 'planUntil'>): 'free' | 'pro' => (d.plan === 'pro' && (d.planUntil ?? 0) > Date.now() ? 'pro' : 'free');
+
+/** One subscription purchase: created with an order, marked paid only after the payment is verified. */
+export interface BillingData {
+  plan: 'pro';
+  amount: number; // paise
+  status: 'created' | 'paid';
+  paymentId?: string;
+  paidAt?: number;
+}
+
 export function privateUser(u: UserDoc) {
-  return { ...publicUser(u), githubChallenge: u.data.githubChallenge && u.data.githubChallenge.expires > Date.now() ? { username: u.data.githubChallenge.username, code: u.data.githubChallenge.code } : null, email: u.data.email, activeRole: u.data.activeRole, onboarded: u.data.onboarded, plan: u.data.plan, founder: u.data.founder, mentorId: u.data.mentorId };
+  return { ...publicUser(u), githubChallenge: u.data.githubChallenge && u.data.githubChallenge.expires > Date.now() ? { username: u.data.githubChallenge.username, code: u.data.githubChallenge.code } : null, email: u.data.email, activeRole: u.data.activeRole, onboarded: u.data.onboarded, plan: effectivePlan(u.data), planUntil: effectivePlan(u.data) === 'pro' ? u.data.planUntil : undefined, founder: u.data.founder, mentorId: u.data.mentorId };
 }
 
 /* ---------------------------------- auth --------------------------------- */
@@ -190,6 +203,8 @@ export function signRefresh(userId: string) {
 declare module 'express-serve-static-core' {
   interface Request {
     user?: UserDoc;
+    /** Raw bytes of the JSON body, kept for webhook signature checks. */
+    rawBody?: Buffer;
   }
 }
 

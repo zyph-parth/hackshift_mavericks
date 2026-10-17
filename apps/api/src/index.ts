@@ -27,14 +27,15 @@ import {
 } from '@launchloop/shared';
 import { count, get, insert, list, patch, remove, update, uid, type Doc } from './db';
 import {
-  HttpError, IS_PROD, SECRET, sampleReview, auth, checkPassword, hashPassword, notify, openThread, privateUser, publicUser,
+  HttpError, IS_PROD, SECRET, effectivePlan, sampleReview, auth, checkPassword, hashPassword, notify, openThread, privateUser, publicUser,
   requireRole, semanticSimilarity, signAccess, signRefresh, toTalent,
-  type ApplicationData, type JobData, type MessageData, type NoticeData, type SubmissionData, type TaskData, type ThreadData, type UserData,
+  type ApplicationData, type BillingData, type JobData, type MessageData, type NoticeData, type SubmissionData, type TaskData, type ThreadData, type UserData,
 } from './lib';
 import { DEMO, seed } from './seed';
 import { evaluateSubmission } from './evaluate';
 import { canonicalLink } from './inspect';
 import { gh, gistsProveCode } from './github';
+import { PRO, RZP_ENABLED, RZP_KEY_ID, RZP_TEST_MODE, RazorpayError, capturePayment, createOrder, fetchPayment, validCheckoutSignature, validWebhookSignature } from './razorpay';
 import { randomBytes } from 'node:crypto';
 import { AI_LIVE, MODELS, DeckSchema, GradeSchema, IdeaSchema, TextSchema, generate } from './ai';
 
@@ -43,7 +44,7 @@ seed();
 const app = express();
 app.disable('x-powered-by');
 app.use(cors({ origin: process.env.CLIENT_URL ?? true, credentials: true }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { (req as Request).rawBody = buf; } }));
 app.use((_, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -581,13 +582,15 @@ function questionsFor(u: Doc<UserData>) {
   qs.push({ q: BANK.Communication[0], skill: 'Communication' });
   return qs.slice(0, 5);
 }
+const attemptCap = (u: Doc<UserData>) => (effectivePlan(u.data) === 'pro' ? PRO.interviewAttempts : 3);
 app.get('/api/interview/questions', auth, requireRole('talent'), (req, res) => {
-  res.json({ questions: questionsFor(me(req)), retakesLeft: Math.max(0, 3 - me(req).data.interviewsDone) });
+  const cap = attemptCap(me(req));
+  res.json({ questions: questionsFor(me(req)), retakesLeft: Math.max(0, cap - me(req).data.interviewsDone), attemptCap: cap });
 });
 app.post('/api/interview/complete', auth, requireRole('talent'), limit('ai', 20), async (req, res) => {
   const b = body(z.object({ answers: z.array(z.object({ q: z.string(), skill: z.string(), answer: z.string().max(4000) })).min(1).max(8), signals: z.number().int().min(0).default(0), seconds: z.number().min(0).default(0) }), req);
   const u = me(req);
-  if (u.data.interviewsDone >= 3) throw new HttpError(429, 'retakes_exhausted', 'You have used all 3 interview attempts.');
+  if (u.data.interviewsDone >= attemptCap(u)) throw new HttpError(429, 'retakes_exhausted', `You have used all ${attemptCap(u)} interview attempts.${effectivePlan(u.data) === 'free' ? ' Pro raises the limit.' : ''}`);
   const detail = await Promise.all(b.answers.map(async (a, i) => {
     const r = await generate({ promptId: 'grade-answer', system: `You are a strict, fair technical interviewer grading one answer on ${a.skill}. Score 0-100 and give one sentence of feedback. JSON: {"score": number, "feedback": string}`, input: { q: a.q, skill: a.skill, answer: a.answer }, schema: GradeSchema, fallback: () => gradeAnswer(a.skill, a.answer, i), model: MODELS.smart });
     return { ...a, answer: a.answer || '(no answer)', score: Math.round(r.data.score), feedback: r.data.feedback };
@@ -613,7 +616,7 @@ app.post('/api/interview/complete', auth, requireRole('talent'), limit('ai', 20)
 });
 app.get('/api/interview/latest', auth, (req, res) => {
   const r = list<{ scores: Record<string, number>; overall: number; detail: unknown[]; signals: number }>('interviews', { owner: me(req).id })[0];
-  res.json({ interview: r ? { id: r.id, created: r.created, ...r.data } : null, attempts: me(req).data.interviewsDone });
+  res.json({ interview: r ? { id: r.id, created: r.created, ...r.data } : null, attempts: me(req).data.interviewsDone, attemptCap: attemptCap(me(req)) });
 });
 
 /* ----------------------------------- mentors ------------------------------ */
@@ -735,6 +738,70 @@ app.get('/api/notices', auth, (req, res) => {
 });
 app.post('/api/notices/read', auth, (req, res) => {
   for (const n of list<NoticeData>('notices', { owner: me(req).id })) if (!n.data.read) patch<NoticeData>('notices', n.id, { read: true });
+  res.json({ ok: true });
+});
+
+/* ---------------------------------- billing ------------------------------- */
+/** Mark an order paid and extend Pro. Idempotent: the webhook and the checkout callback can both arrive. */
+function grantPro(orderId: string, paymentId: string) {
+  const order = list<BillingData>('billing', { ref: orderId })[0];
+  if (!order || order.data.status === 'paid') return;
+  const u = order.owner ? get<UserData>('users', order.owner) : undefined;
+  patch<BillingData>('billing', order.id, { status: 'paid', paymentId, paidAt: Date.now() });
+  if (!u) return;
+  const from = Math.max(Date.now(), effectivePlan(u.data) === 'pro' ? u.data.planUntil ?? 0 : 0);
+  update('users', u.id, { ...u.data, plan: 'pro', planUntil: from + PRO.days * 86400_000 });
+  notify(u.id, `Pro is active until ${new Date(from + PRO.days * 86400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Thank you.`, '/settings');
+}
+const billingErr = (e: unknown): never => {
+  if (e instanceof RazorpayError) throw new HttpError(e.status, 'billing', e.message);
+  throw e;
+};
+
+app.get('/api/billing/config', auth, (req, res) => {
+  const u = me(req);
+  res.json({ enabled: RZP_ENABLED, testMode: RZP_TEST_MODE, priceInr: PRO.priceInr, days: PRO.days, interviewAttempts: PRO.interviewAttempts, plan: effectivePlan(u.data), planUntil: effectivePlan(u.data) === 'pro' ? u.data.planUntil : null });
+});
+
+app.post('/api/billing/order', auth, limit('billing', 8), async (req, res) => {
+  if (!RZP_ENABLED) throw new HttpError(503, 'billing_unavailable', 'Payments are not configured on this server.');
+  const u = me(req);
+  const amount = PRO.priceInr * 100; // the server decides the price, never the browser
+  const receipt = `pro_${u.id.slice(-10)}_${Date.now().toString(36)}`.slice(0, 40);
+  const o = await createOrder(amount, receipt, { userId: u.id, plan: 'pro' }).catch(billingErr);
+  insert<BillingData>('billing', { plan: 'pro', amount, status: 'created' }, { owner: u.id, ref: o.id });
+  res.status(201).json({ orderId: o.id, amount: o.amount, currency: o.currency, keyId: RZP_KEY_ID, name: u.data.name, email: u.data.email });
+});
+
+app.post('/api/billing/verify', auth, limit('billing', 12), async (req, res) => {
+  if (!RZP_ENABLED) throw new HttpError(503, 'billing_unavailable', 'Payments are not configured on this server.');
+  const b = body(z.object({ razorpay_order_id: z.string().max(64), razorpay_payment_id: z.string().max(64), razorpay_signature: z.string().max(128) }), req);
+  const u = me(req);
+  const order = list<BillingData>('billing', { ref: b.razorpay_order_id }).find((o) => o.owner === u.id);
+  if (!order) throw new HttpError(404, 'not_found', 'We have no such order for your account.');
+  if (order.data.status !== 'paid') {
+    if (!validCheckoutSignature(b.razorpay_order_id, b.razorpay_payment_id, b.razorpay_signature)) throw new HttpError(400, 'bad_signature', 'The payment signature did not match, so nothing was upgraded.');
+    // belt and braces: ask Razorpay what really happened, and check it is this order and this amount
+    let pay = await fetchPayment(b.razorpay_payment_id).catch(billingErr);
+    if (pay.order_id !== b.razorpay_order_id || pay.amount !== order.data.amount || pay.currency !== 'INR') throw new HttpError(400, 'mismatch', 'That payment does not match this order.');
+    if (pay.status === 'authorized') pay = await capturePayment(pay.id, order.data.amount).catch(billingErr);
+    if (pay.status !== 'captured') throw new HttpError(402, 'not_captured', `The payment is ${pay.status}, not completed. Nothing was charged to your plan.`);
+    grantPro(b.razorpay_order_id, pay.id);
+  }
+  res.json({ ok: true, user: privateUser(get<UserData>('users', u.id)!) });
+});
+
+/** Razorpay calls this server-to-server. A valid signature over the raw body is the only thing that makes it trusted. */
+app.post('/api/billing/webhook', (req, res) => {
+  const sig = String(req.headers['x-razorpay-signature'] ?? '');
+  if (!req.rawBody || !validWebhookSignature(req.rawBody, sig)) return void res.status(400).json({ error: { code: 'bad_signature', message: 'Invalid signature.' } });
+  const ev = req.body as { event?: string; payload?: { payment?: { entity?: { id: string; order_id: string; amount: number; currency: string; status: string } }; order?: { entity?: { id: string } } } };
+  if (ev.event === 'payment.captured' || ev.event === 'order.paid') {
+    const pay = ev.payload?.payment?.entity;
+    const orderId = pay?.order_id ?? ev.payload?.order?.entity?.id;
+    const order = orderId ? list<BillingData>('billing', { ref: orderId })[0] : undefined;
+    if (order && pay && pay.status === 'captured' && pay.amount === order.data.amount && pay.currency === 'INR') grantPro(orderId!, pay.id);
+  }
   res.json({ ok: true });
 });
 
