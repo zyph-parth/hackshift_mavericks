@@ -1,6 +1,6 @@
 import { COFOUNDERS, JOBS, MENTORS, ME_FOUNDER, SUBMISSIONS, TALENTS, TASKS } from '@launchloop/shared';
 import { count, insert } from './db';
-import { hashPassword, type JobData, type MessageData, type SubmissionData, type TaskData, type ThreadData, type UserData } from './lib';
+import { hashPassword, sampleReview, type JobData, type MessageData, type SubmissionData, type TaskData, type ThreadData, type UserData } from './lib';
 
 export const DEMO = {
   talent: { email: 'priya@demo.dev', id: 't_priya' },
@@ -93,7 +93,7 @@ export function seed() {
   for (const s of SUBMISSIONS) {
     insert<SubmissionData>('submissions', {
       taskId: s.taskId, talentId: s.talentId, link: s.link, text: '', aiScore: s.aiScore,
-      recommendation: s.recommendation, meets: s.meets, missing: s.missing, summary: s.summary, status: 'submitted',
+      recommendation: s.recommendation, meets: s.meets, missing: s.missing, summary: s.summary, status: 'submitted', review: sampleReview(s.link, s.aiScore),
     }, { id: s.id, owner: s.talentId, ref: s.taskId });
   }
 

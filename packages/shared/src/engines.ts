@@ -8,7 +8,7 @@ import type {
   StartupFacts,
   Talent,
 } from './types';
-import { EVIDENCE_WEIGHT } from './types';
+import { ASSESSED, EVIDENCE_WEIGHT } from './types';
 
 const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 const norm = (s: string) => s.trim().toLowerCase();
@@ -76,9 +76,14 @@ export function matchScore(talent: Talent, job: Job): MatchBreakdown {
   };
 }
 
+/**
+ * Only skills we assessed (interview, proof task) count. Self-claims and imported GitHub
+ * activity add nothing here, so the score can't be raised by typing a username.
+ * Dividing by *all* skills keeps breadth honest: proving one skill out of seven is a small score.
+ */
 export function verifiedScore(skills: SkillClaim[]): number {
   if (!skills.length) return 0;
-  const sum = skills.reduce((a, s) => a + s.level * EVIDENCE_WEIGHT[s.evidence], 0);
+  const sum = skills.reduce((a, s) => a + (ASSESSED[s.evidence] ? s.level * EVIDENCE_WEIGHT[s.evidence] : 0), 0);
   return Math.round(sum / skills.length);
 }
 

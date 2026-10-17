@@ -1,4 +1,4 @@
-import type { MatchBreakdown, Mentor, Role, SkillClaim, FounderProfile, Compat } from '@launchloop/shared';
+import type { MatchBreakdown, Mentor, Role, SkillClaim, FounderProfile, Compat, Recommendation, SubmissionReview } from '@launchloop/shared';
 
 export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: { path: string; message: string }[]) {
@@ -73,12 +73,15 @@ export interface PublicUser {
   roles: Role[];
   company?: string;
   verifiedScore: number;
+  /** Only set when the user proved they control this GitHub account. `links.github` is just a typed-in link. */
+  github: { username: string } | null;
 }
 export interface Me extends PublicUser {
   email: string;
   activeRole: Role;
   onboarded: boolean;
   plan: 'free' | 'pro';
+  githubChallenge: { username: string; code: string } | null;
   founder?: { has: string[]; needs: string[]; commitment: 'Full-time' | 'Part-time'; stage: string; values: string[] };
   mentorId?: string;
 }
@@ -122,7 +125,7 @@ export interface TaskT {
   submissions: number;
   status: 'open' | 'closed';
   ownerId: string | null;
-  mine: null | { id: string; aiScore: number; status: string; summary: string; meets: string[]; missing: string[]; recommendation: string };
+  mine: null | { id: string; aiScore: number; status: string; summary: string; meets: string[]; missing: string[]; recommendation: string; review: SubmissionReview };
 }
 export interface SubmissionT {
   id: string;
@@ -131,11 +134,12 @@ export interface SubmissionT {
   link: string;
   text: string;
   aiScore: number;
-  recommendation: 'shortlist' | 'maybe' | 'reject';
+  recommendation: Recommendation;
   meets: string[];
   missing: string[];
   summary: string;
   status: 'submitted' | 'accepted' | 'rejected';
+  review: SubmissionReview;
   talent: PublicUser | null;
 }
 export interface ApplicationRow {

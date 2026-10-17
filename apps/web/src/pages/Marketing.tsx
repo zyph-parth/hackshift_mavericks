@@ -14,7 +14,7 @@ export function HowItWorks() {
   const [who, setWho] = useState<'talent' | 'founder' | 'recruiter'>('talent');
   const flows = {
     talent: [
-      ['Build your profile', 'Paste your resume or import GitHub. Skills land as self-reported or GitHub-verified, and you can never edit a verified level yourself.'],
+      ['Build your profile', 'Paste your resume, or prove you own a GitHub account and import your activity. Skills land as self-reported or GitHub activity. Neither counts as verified, and you can never edit an assessed level yourself.'],
       ['Take the voice interview', 'Five questions, about ten minutes, tailored to the skills on your profile. Answer by voice or typing. Each tested skill becomes interview-verified.'],
       ['Do a paid proof task', 'Real work from real startups, funded up front. Accepted work releases the reward and upgrades the skill to task-verified.'],
       ['Get matched and apply', 'Every role shows an auditable match score. Apply in one click with an AI-drafted note, then track the stage in your applications and inbox.'],

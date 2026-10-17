@@ -26,7 +26,7 @@ function useLenis() {
   }, []);
 }
 
-const EV_LABEL = { self: 'Self-reported', github: 'GitHub', interview: 'Interview', task: 'Proof task' } as const;
+const EV_LABEL = { self: 'Self-reported', github: 'GitHub activity', interview: 'Interview', task: 'Proof task' } as const;
 
 const SHOWCASE = [...TALENTS].sort((a, b) => b.verifiedScore - a.verifiedScore)[0];
 
@@ -80,7 +80,7 @@ function Hero() {
             <LinkButton to="/login" variant="secondary" size="lg">Try a demo account</LinkButton>
           </motion.div>
           <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-5 text-xs text-muted">
-            {[['self', 'Self-reported'], ['github', 'GitHub'], ['interview', 'Interview'], ['task', 'Task-verified']].map(([e, l]) => (
+            {[['self', 'Self-reported'], ['github', 'GitHub activity'], ['interview', 'Interview-verified'], ['task', 'Task-verified']].map(([e, l]) => (
               <span key={e} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: evColor(e) }} />{l}</span>
             ))}
             <span className="text-faint">Every number shows its evidence.</span>

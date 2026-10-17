@@ -3,6 +3,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { z, ZodError } from 'zod';
 import {
+  ASSESSED,
   EVIDENCE_WEIGHT,
   READINESS_AXES,
   analyseIdea,
@@ -12,11 +13,13 @@ import {
   gradeAnswer,
   matchScore,
   reviewDeck,
-  reviewSubmission,
   roadmapFor,
   verifiedScore,
   type Evidence,
   type FounderProfile,
+  type Recommendation,
+  type ReviewFlag,
+  type SubmissionReview,
   type Job,
   type Mentor,
   type Role,
@@ -24,12 +27,16 @@ import {
 } from '@launchloop/shared';
 import { count, get, insert, list, patch, remove, update, uid, type Doc } from './db';
 import {
-  HttpError, IS_PROD, SECRET, auth, checkPassword, hashPassword, notify, openThread, privateUser, publicUser,
+  HttpError, IS_PROD, SECRET, sampleReview, auth, checkPassword, hashPassword, notify, openThread, privateUser, publicUser,
   requireRole, semanticSimilarity, signAccess, signRefresh, toTalent,
   type ApplicationData, type JobData, type MessageData, type NoticeData, type SubmissionData, type TaskData, type ThreadData, type UserData,
 } from './lib';
 import { DEMO, seed } from './seed';
-import { AI_LIVE, DeckSchema, GradeSchema, IdeaSchema, TextSchema, generate } from './ai';
+import { evaluateSubmission } from './evaluate';
+import { canonicalLink } from './inspect';
+import { gh, gistsProveCode } from './github';
+import { randomBytes } from 'node:crypto';
+import { AI_LIVE, MODELS, DeckSchema, GradeSchema, IdeaSchema, TextSchema, generate } from './ai';
 
 seed();
 
@@ -73,7 +80,7 @@ const usernameFor = (name: string) => {
 
 /* ---------------------------------- health -------------------------------- */
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, ai: AI_LIVE ? 'claude' : 'fallback', users: count('users'), uptime: Math.round(process.uptime()) });
+  res.json({ ok: true, ai: AI_LIVE ? 'groq' : 'fallback', users: count('users'), uptime: Math.round(process.uptime()) });
 });
 app.get('/api/stats', (_req, res) => {
   const users = list<UserData>('users');
@@ -191,34 +198,81 @@ app.post('/api/me/resume', auth, (req, res) => {
 });
 
 const LANG_SKILL: Record<string, string> = { TypeScript: 'TypeScript', JavaScript: 'JavaScript', Python: 'Python', Go: 'Go', Rust: 'Rust', Java: 'Java', Kotlin: 'Kotlin', Swift: 'Swift', Dart: 'Flutter', 'C++': 'C++', Vue: 'Vue', HTML: 'Frontend', CSS: 'CSS', Shell: 'DevOps', Dockerfile: 'Docker' };
-app.post('/api/me/github', auth, limit('gh', 6), async (req, res) => {
-  const { username } = body(z.object({ username: z.string().trim().regex(/^[A-Za-z0-9-]{1,39}$/, 'Enter just your GitHub username') }), req);
-  const r = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`, { headers: { accept: 'application/vnd.github+json', 'user-agent': 'launchloop' }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+/** Imported activity is never worth more than this. It says someone wrote code in a language, not how well. */
+const GITHUB_ACTIVITY_CAP = 60;
+
+/**
+ * Typing a username proves nothing: anyone can type anyone's. So linking is two steps. We hand out a one-time
+ * code, the user puts it in the description of a public gist on that account, and only then do we trust it.
+ */
+app.post('/api/me/github/challenge', auth, requireRole('talent'), limit('gh', 10), async (req, res) => {
+  const { username } = body(z.object({ username: z.string().trim().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/, 'Enter just your GitHub username') }), req);
+  const r = await gh(`/users/${username}`).catch(() => null);
   if (!r) throw new HttpError(502, 'github_unreachable', 'Could not reach GitHub right now. Try again shortly.');
+  if (r.limited) throw new HttpError(503, 'github_rate_limited', 'GitHub is rate-limiting us. Try again in a few minutes.');
   if (r.status === 404) throw new HttpError(404, 'github_not_found', 'No GitHub user with that name.');
-  if (!r.ok) throw new HttpError(502, 'github_error', 'GitHub rate-limited us. Try again in a few minutes.');
-  const repos = (await r.json()) as { language: string | null; stargazers_count: number; fork: boolean }[];
-  const own = repos.filter((x) => !x.fork && x.language);
-  const agg = new Map<string, { repos: number; stars: number }>();
+  if (!r.data) throw new HttpError(502, 'github_error', 'GitHub returned an unexpected response. Try again shortly.');
+  const taken = list<UserData>('users').find((x) => x.id !== me(req).id && x.data.github?.username.toLowerCase() === username.toLowerCase());
+  if (taken) throw new HttpError(409, 'github_taken', 'That GitHub account is already linked to another LaunchLoop profile.');
+  const code = `launchloop-verify-${randomBytes(6).toString('hex')}`;
+  const u = me(req);
+  update('users', u.id, { ...u.data, githubChallenge: { username, code, expires: Date.now() + 30 * 60_000 } });
+  res.json({ username, code, expiresInMinutes: 30 });
+});
+
+app.post('/api/me/github/verify', auth, requireRole('talent'), limit('gh', 10), async (req, res) => {
+  const u = me(req);
+  const c = u.data.githubChallenge;
+  if (!c || c.expires < Date.now()) throw new HttpError(400, 'no_challenge', 'That code expired. Start again to get a new one.');
+  const g = await gh<{ description: string | null; public: boolean; files: Record<string, unknown> }[]>(`/users/${c.username}/gists?per_page=50`).catch(() => null);
+  if (!g) throw new HttpError(502, 'github_unreachable', 'Could not reach GitHub right now. Try again shortly.');
+  if (g.limited) throw new HttpError(503, 'github_rate_limited', 'GitHub is rate-limiting us. Try again in a few minutes.');
+  if (!g.data) throw new HttpError(502, 'github_error', 'GitHub returned an unexpected response. Try again shortly.');
+  if (!gistsProveCode(g.data, c.code)) throw new HttpError(422, 'code_not_found', `We could not find a public gist on github.com/${c.username} with that code in its description yet. Create it, then try again.`);
+  const taken = list<UserData>('users').find((x) => x.id !== u.id && x.data.github?.username.toLowerCase() === c.username.toLowerCase());
+  if (taken) throw new HttpError(409, 'github_taken', 'That GitHub account is already linked to another LaunchLoop profile.');
+  const next: UserData = { ...u.data, githubChallenge: undefined, github: { username: c.username, verifiedAt: Date.now() }, links: { ...u.data.links, github: `github.com/${c.username}` } };
+  update('users', u.id, next);
+  res.json(await importGithub({ ...u, data: next }));
+});
+
+app.post('/api/me/github/refresh', auth, requireRole('talent'), limit('gh', 6), async (req, res) => {
+  const u = me(req);
+  if (!u.data.github) throw new HttpError(400, 'not_linked', 'Link and verify a GitHub account first.');
+  res.json(await importGithub(u));
+});
+
+/** Turn public-repo activity into *imported activity* skill claims. Never assessed, never above the cap. */
+async function importGithub(u: Doc<UserData>) {
+  const username = u.data.github!.username;
+  const r = await gh<{ language: string | null; stargazers_count: number; fork: boolean; pushed_at: string }[]>(`/users/${username}/repos?per_page=100&sort=pushed`).catch(() => null);
+  if (!r) throw new HttpError(502, 'github_unreachable', 'Could not reach GitHub right now. Try again shortly.');
+  if (r.limited) throw new HttpError(503, 'github_rate_limited', 'GitHub is rate-limiting us. Try again in a few minutes.');
+  if (!r.data) throw new HttpError(502, 'github_error', 'GitHub returned an unexpected response. Try again shortly.');
+  const own = r.data.filter((x) => !x.fork && x.language);
+  const agg = new Map<string, { repos: number; stars: number; last: string }>();
   for (const rp of own) {
     const skill = LANG_SKILL[rp.language!] ?? rp.language!;
-    const cur = agg.get(skill) ?? { repos: 0, stars: 0 };
-    agg.set(skill, { repos: cur.repos + 1, stars: cur.stars + rp.stargazers_count });
+    const cur = agg.get(skill) ?? { repos: 0, stars: 0, last: '' };
+    agg.set(skill, { repos: cur.repos + 1, stars: cur.stars + rp.stargazers_count, last: rp.pushed_at > cur.last ? rp.pushed_at : cur.last });
   }
-  const u = me(req);
   const skills = [...u.data.skills];
   const added: string[] = [];
+  const yearAgo = new Date(Date.now() - 365 * 86400_000).toISOString();
   for (const [name, a] of [...agg].sort((x, y) => y[1].repos - x[1].repos).slice(0, 6)) {
-    const level = Math.min(88, 50 + a.repos * 6 + Math.min(a.stars, 20));
+    const level = Math.min(GITHUB_ACTIVITY_CAP, 30 + a.repos * 6 + (a.last > yearAgo ? 10 : 0));
     const i = skills.findIndex((s) => s.name.toLowerCase() === name.toLowerCase());
-    const claim: SkillClaim = { name, evidence: 'github', level, source: `GitHub: ${a.repos} original repos, ${a.stars} stars` };
-    if (i >= 0) { if (EVIDENCE_WEIGHT[skills[i].evidence] <= EVIDENCE_WEIGHT.github) skills[i] = claim; } else skills.push(claim);
+    const claim: SkillClaim = { name, evidence: 'github', level, source: `Imported GitHub activity: ${a.repos} original repo${a.repos > 1 ? 's' : ''} in ${name}, last pushed ${a.last.slice(0, 10)}. Not assessed.` };
+    if (i >= 0) {
+      // never overwrite anything we assessed ourselves
+      if (EVIDENCE_WEIGHT[skills[i].evidence] <= EVIDENCE_WEIGHT.github && !ASSESSED[skills[i].evidence]) skills[i] = { ...claim, name: skills[i].name };
+    } else skills.push(claim);
     added.push(name);
   }
-  const next = { ...u.data, skills, links: { ...u.data.links, github: `github.com/${username}` } };
+  const next: UserData = { ...u.data, skills, github: { ...u.data.github!, importedAt: Date.now() } };
   update('users', u.id, next);
-  res.json({ added, repos: own.length, user: privateUser({ ...u, data: next }) });
-});
+  return { added, repos: own.length, user: privateUser({ ...u, data: next }) };
+}
 
 /* ------------------------------ public profiles --------------------------- */
 app.get('/api/users/:username', auth, (req, res) => {
@@ -346,21 +400,40 @@ app.post('/api/ai/pitch-note', auth, limit('ai', 20), async (req, res) => {
   const v = jobView(j, me(req));
   const best = [...(v.match?.matched ?? [])].sort((a, b) => b.level - a.level)[0];
   const args = { name: me(req).data.name, startup: j.data.startup, jobTitle: j.data.title, topSkill: best?.name, level: best?.level, evidence: best?.evidence };
-  const r = await generate({ promptId: 'pitch-note', system: 'Write a warm, specific 2-3 sentence application note from a candidate to a startup. Mention verified evidence. JSON: {"text": string}', input: args, schema: TextSchema, fallback: () => ({ text: draftPitchNote(args) }) });
+  const r = await generate({ promptId: 'pitch-note', system: 'Write a warm, specific 2-3 sentence application note from a candidate to a startup. Mention verified evidence. JSON: {"text": string}', input: args, schema: TextSchema, fallback: () => ({ text: draftPitchNote(args) }), model: MODELS.fast });
   res.json({ text: r.data.text, source: r.source });
 });
 app.post('/api/ai/jd', auth, requireRole('recruiter', 'founder'), limit('ai', 20), async (req, res) => {
   const b = body(z.object({ title: z.string().min(3).max(100), notes: z.string().max(1000) }), req);
-  const r = await generate({ promptId: 'jd', system: 'Write a concise, honest job description for an Indian startup. JSON: {"text": string}', input: b, schema: TextSchema, fallback: () => ({ text: draftJobDescription(b.title, b.notes) }) });
+  const r = await generate({ promptId: 'jd', system: 'Write a concise, honest job description for an Indian startup. JSON: {"text": string}', input: b, schema: TextSchema, fallback: () => ({ text: draftJobDescription(b.title, b.notes) }), model: MODELS.fast });
   res.json({ text: r.data.text, source: r.source });
 });
 
 /* ------------------------------------ tasks ------------------------------- */
+const reviewOf = (s: Doc<SubmissionData>) => s.data.review ?? sampleReview(s.data.link, s.data.aiScore);
+
+/** Demo rows carry invented prose and rubric chips. Never show those as if they were findings. */
+function shown(s: Doc<SubmissionData>) {
+  const review = reviewOf(s);
+  if (review.status !== 'sample') return { ...s.data, review };
+  return { ...s.data, review, summary: 'Demo submission. It was never inspected.', meets: [] as string[], missing: [] as string[] };
+}
+
+/** Everything a reviewer sees is derived from one inspection, so the list fields can never disagree with it. */
+function reviewFields(r: SubmissionReview, summary: string, recommendation: Recommendation) {
+  return {
+    review: r, summary, recommendation,
+    aiScore: r.status === 'unassessed' ? 0 : r.score,
+    meets: r.criteria.filter((c) => c.verdict === 'met').map((c) => c.criterion),
+    missing: r.criteria.filter((c) => c.verdict === 'not_met' || c.verdict === 'partial').map((c) => c.criterion),
+  };
+}
+
 function taskView(t: Doc<TaskData>, viewer: Doc<UserData>) {
   const subs = list<SubmissionData>('submissions', { ref: t.id });
   const mine = subs.find((s) => s.data.talentId === viewer.id);
   const { status, baseSubmissions, ...rest } = t.data;
-  return { ...rest, id: t.id, status, ownerId: t.owner, submissions: (baseSubmissions ?? 0) + subs.length, mine: mine ? { id: mine.id, aiScore: mine.data.aiScore, status: mine.data.status, summary: mine.data.summary, meets: mine.data.meets, missing: mine.data.missing, recommendation: mine.data.recommendation } : null };
+  return { ...rest, id: t.id, status, ownerId: t.owner, submissions: (baseSubmissions ?? 0) + subs.length, mine: mine ? (({ aiScore, status, summary, meets, missing, recommendation, review }) => ({ id: mine.id, aiScore, status, summary, meets, missing, recommendation, review }))(shown(mine)) : null };
 }
 app.get('/api/tasks', auth, (req, res) => {
   res.json({ tasks: list<TaskData>('tasks').filter((t) => t.data.status === 'open').map((t) => taskView(t, me(req))) });
@@ -390,24 +463,52 @@ app.patch('/api/tasks/:id', auth, requireRole('recruiter', 'founder'), (req, res
   const { status } = body(z.object({ status: z.enum(['open', 'closed']) }), req);
   res.json({ task: taskView(patch<TaskData>('tasks', t.id, { status })!, me(req)) });
 });
-app.post('/api/tasks/:id/submit', auth, requireRole('talent'), limit('submit', 10), (req, res) => {
+/** Same project link, already submitted to this task by someone else. */
+function duplicateFlag(taskId: string, key: string, exceptId?: string): ReviewFlag[] {
+  const other = list<SubmissionData>('submissions', { ref: taskId }).find((x) => x.id !== exceptId && x.data.linkKey && x.data.linkKey === key && key);
+  return other ? [{ level: 'warn', text: 'Another candidate submitted this exact link to this task. Check which of them did the work.' }] : [];
+}
+async function runEvaluation(t: Doc<TaskData>, talent: Doc<UserData>, link: string, exceptId?: string) {
+  const key = canonicalLink(link);
+  try {
+    return await evaluateSubmission({ link, rubric: t.data.rubric, brief: t.data.brief, taskPostedAt: t.created, verifiedLogin: talent.data.github?.username, extraFlags: duplicateFlag(t.id, key, exceptId) });
+  } catch (e) {
+    console.error('[inspect] failed', e);
+    const r = sampleReview(link, 0);
+    return { review: { ...r, status: 'unassessed' as const, flags: [{ level: 'warn' as const, text: 'The inspection failed unexpectedly. Re-run it, or review the submission by hand.' }], at: Date.now() }, summary: 'The inspection failed, so nothing was assessed.', recommendation: 'review' as const };
+  }
+}
+
+app.post('/api/tasks/:id/submit', auth, requireRole('talent'), limit('submit', 10), async (req, res) => {
   const t = get<TaskData>('tasks', String(req.params.id));
   if (!t || t.data.status !== 'open') throw new HttpError(404, 'not_found', 'This task is closed.');
   if (new Date(t.data.deadline).getTime() < Date.now()) throw new HttpError(410, 'deadline_passed', 'The deadline for this task has passed.');
   const b = body(z.object({ link: z.string().trim().max(300).default(''), text: z.string().trim().max(5000).default('') }).refine((v) => v.link || v.text.length >= 20, 'Add a link or a write-up of at least 20 characters.'), req);
   const u = me(req);
   if (list<SubmissionData>('submissions', { ref: t.id }).some((s) => s.data.talentId === u.id)) throw new HttpError(409, 'already_submitted', 'You already submitted to this task.');
-  const rv = reviewSubmission({ rubric: t.data.rubric, link: b.link, text: b.text, salt: u.id + t.id });
-  const s = insert<SubmissionData>('submissions', { taskId: t.id, talentId: u.id, link: b.link, text: b.text, aiScore: rv.score, recommendation: rv.recommendation, meets: rv.meets, missing: rv.missing, summary: rv.summary, status: 'submitted' }, { owner: u.id, ref: t.id });
-  if (t.owner) notify(t.owner, `New submission on “${t.data.title}” (AI score ${rv.score})`, `/tasks/${t.id}/review`);
+  const ev = await runEvaluation(t, u, b.link);
+  const s = insert<SubmissionData>('submissions', { taskId: t.id, talentId: u.id, link: b.link, text: b.text, linkKey: canonicalLink(b.link), status: 'submitted', ...reviewFields(ev.review, ev.summary, ev.recommendation) }, { owner: u.id, ref: t.id });
+  if (t.owner) notify(t.owner, `New submission on “${t.data.title}”: ${ev.review.status === 'unassessed' ? 'needs a manual look' : `${ev.review.assessed}/${ev.review.total} criteria assessed, ${ev.review.score}% met`}`, `/tasks/${t.id}/review`);
   res.status(201).json({ submission: { id: s.id, ...s.data } });
+});
+
+/** Re-open the submitted project and re-check it (e.g. after a rate limit, or after the candidate fixed their repo). */
+app.post('/api/submissions/:id/reinspect', auth, limit('inspect', 6), async (req, res) => {
+  const s = get<SubmissionData>('submissions', String(req.params.id));
+  const t = s && get<TaskData>('tasks', s.data.taskId);
+  if (!s || !t || (t.owner !== me(req).id && s.data.talentId !== me(req).id)) throw new HttpError(404, 'not_found', 'Submission not found.');
+  if (s.data.status !== 'submitted') throw new HttpError(409, 'closed', 'This submission is already decided.');
+  const talent = get<UserData>('users', s.data.talentId)!;
+  const ev = await runEvaluation(t, talent, s.data.link, s.id);
+  patch<SubmissionData>('submissions', s.id, reviewFields(ev.review, ev.summary, ev.recommendation));
+  res.json({ review: ev.review });
 });
 app.get('/api/tasks/:id/submissions', auth, requireRole('recruiter', 'founder'), (req, res) => {
   const t = get<TaskData>('tasks', String(req.params.id));
   if (!t || t.owner !== me(req).id) throw new HttpError(404, 'not_found', 'Task not found.');
   const rows = list<SubmissionData>('submissions', { ref: t.id }).map((s) => {
     const tal = get<UserData>('users', s.data.talentId);
-    return { id: s.id, ...s.data, created: s.created, talent: tal ? publicUser(tal) : null };
+    return { id: s.id, ...shown(s), created: s.created, talent: tal ? publicUser(tal) : null };
   }).sort((a, b) => b.aiScore - a.aiScore);
   res.json({ task: taskView(t, me(req)), submissions: rows });
 });
@@ -420,8 +521,13 @@ app.post('/api/submissions/:id/accept', auth, requireRole('recruiter', 'founder'
   // payment: webhook-verified in production, simulated here
   const pay = insert('payments', { taskId: t.id, submissionId: s.id, to: tal.id, amount: t.data.reward, provider: process.env.SIMULATE_PAYMENTS === 'false' ? 'razorpay' : 'simulated', status: 'paid' }, { owner: me(req).id, ref: t.id });
   patch<SubmissionData>('submissions', s.id, { status: 'accepted' });
-  const skills = tal.data.skills.map((k) => (t.data.skills.some((x) => x.toLowerCase() === k.name.toLowerCase()) ? { ...k, evidence: 'task' as Evidence, level: Math.max(k.level, Math.min(95, s.data.aiScore)), source: `Proof task: ${t.data.title} · ${s.data.aiScore}/100` } : k));
-  for (const name of t.data.skills) if (!skills.some((k) => k.name.toLowerCase() === name.toLowerCase())) skills.push({ name, evidence: 'task', level: Math.min(95, s.data.aiScore), source: `Proof task: ${t.data.title} · ${s.data.aiScore}/100` });
+  // The founder's acceptance is the human verdict. The level reflects how much we could actually check:
+  // a fully assessed project earns its score, a thinly assessed one is capped so it can't claim more than we saw.
+  const rv = reviewOf(s);
+  const level = rv.status === 'assessed' ? Math.max(50, Math.min(95, rv.score)) : 65;
+  const src = rv.status === 'assessed' ? `Proof task: ${t.data.title}. ${rv.assessed}/${rv.total} criteria inspected, ${rv.score}% met, accepted by the founder.` : `Proof task: ${t.data.title}. Accepted by the founder after manual review (${rv.status === 'sample' ? 'demo' : `${rv.assessed}/${rv.total} criteria could be inspected automatically`}).`;
+  const skills = tal.data.skills.map((k) => (t.data.skills.some((x) => x.toLowerCase() === k.name.toLowerCase()) ? { ...k, evidence: 'task' as Evidence, level: k.evidence === 'task' ? Math.max(k.level, level) : level, source: src } : k));
+  for (const name of t.data.skills) if (!skills.some((k) => k.name.toLowerCase() === name.toLowerCase())) skills.push({ name, evidence: 'task', level, source: src });
   update('users', tal.id, { ...tal.data, skills, tasksDone: tal.data.tasksDone + 1, earned: tal.data.earned + t.data.reward });
   notify(tal.id, `Your submission for “${t.data.title}” was accepted. ₹${t.data.reward.toLocaleString('en-IN')} paid.`, '/profile');
   openThread(me(req).id, tal.id, `Accepted: ${t.data.title}`, 'task', `Congrats ${tal.data.name.split(' ')[0]}! Your submission was accepted and ₹${t.data.reward.toLocaleString('en-IN')} has been released. Let's talk about working together.`);
@@ -483,7 +589,7 @@ app.post('/api/interview/complete', auth, requireRole('talent'), limit('ai', 20)
   const u = me(req);
   if (u.data.interviewsDone >= 3) throw new HttpError(429, 'retakes_exhausted', 'You have used all 3 interview attempts.');
   const detail = await Promise.all(b.answers.map(async (a, i) => {
-    const r = await generate({ promptId: 'grade-answer', system: `You are a strict, fair technical interviewer grading one answer on ${a.skill}. Score 0-100 and give one sentence of feedback. JSON: {"score": number, "feedback": string}`, input: { q: a.q, skill: a.skill, answer: a.answer }, schema: GradeSchema, fallback: () => gradeAnswer(a.skill, a.answer, i), model: 'claude-sonnet-5-5' });
+    const r = await generate({ promptId: 'grade-answer', system: `You are a strict, fair technical interviewer grading one answer on ${a.skill}. Score 0-100 and give one sentence of feedback. JSON: {"score": number, "feedback": string}`, input: { q: a.q, skill: a.skill, answer: a.answer }, schema: GradeSchema, fallback: () => gradeAnswer(a.skill, a.answer, i), model: MODELS.smart });
     return { ...a, answer: a.answer || '(no answer)', score: Math.round(r.data.score), feedback: r.data.feedback };
   }));
   const bySkill: Record<string, number[]> = {};
@@ -572,7 +678,7 @@ app.put('/api/venture', auth, (req, res) => {
 });
 app.post('/api/ai/validate-idea', auth, limit('ai', 20), async (req, res) => {
   const { text } = body(z.object({ text: z.string().trim().min(20).max(4000) }), req);
-  const r = await generate({ promptId: 'validate-idea', system: 'You are a sharp, honest startup analyst for the Indian market. Return: problem, user, market (with a bottom-up sizing), competitors [[name, note]...] (3), risks (3 strings), canvas [[block, text]...] for the 9 Lean Canvas blocks in order.', input: { text }, schema: IdeaSchema, fallback: () => analyseIdea(text) });
+  const r = await generate({ promptId: 'validate-idea', system: 'You are a sharp, honest startup analyst for the Indian market. Return: problem, user, market (with a bottom-up sizing), competitors [[name, note]...] (3), risks (3 strings), canvas [[block, text]...] for the 9 Lean Canvas blocks in order. JSON: {"problem": string, "user": string, "market": string, "competitors": [[string, string], [string, string], [string, string]], "risks": [string, string, string], "canvas": [["Problem", string], ["Customer segments", string], ["Unique value proposition", string], ["Solution", string], ["Channels", string], ["Revenue streams", string], ["Cost structure", string], ["Key metrics", string], ["Unfair advantage", string]]}', input: { text }, schema: IdeaSchema, fallback: () => analyseIdea(text) });
   const cur = list<VentureData>('ventures', { owner: me(req).id })[0];
   if (cur) patch<VentureData>('ventures', cur.id, { text, analysis: r.data }); else insert<VentureData>('ventures', { text, analysis: r.data, facts: {}, teamSize: 1, hasUsers: false, done: {} }, { owner: me(req).id });
   res.json({ analysis: r.data, source: r.source, axes: READINESS_AXES });
@@ -662,4 +768,4 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 const PORT = Number(process.env.PORT ?? 4000);
-app.listen(PORT, () => console.log(`LaunchLoop API on :${PORT} · AI: ${AI_LIVE ? 'Claude' : 'deterministic fallback'}`));
+app.listen(PORT, () => console.log(`LaunchLoop API on :${PORT} · AI: ${AI_LIVE ? `Groq (${MODELS.smart})` : 'deterministic fallback'}`));

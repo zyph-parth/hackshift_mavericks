@@ -109,33 +109,6 @@ export function draftPitchNote(args: { name: string; startup: string; jobTitle: 
   return `Hi ${startup} team, I'm ${name.split(' ')[0]}.${proof} I'd love to help you ship ${jobTitle.toLowerCase()} work in the first 30 days, and I'm happy to start with a paid proof task if that's easier.`;
 }
 
-/** Deterministic review of a proof-task submission against its rubric. */
-export function reviewSubmission(args: { rubric: string[]; link?: string; text?: string; salt: string }) {
-  const body = `${args.link ?? ''} ${args.text ?? ''}`.toLowerCase();
-  const words = (args.text ?? '').trim().split(/\s+/).filter(Boolean).length;
-  const hasLink = /^https?:\/\//.test((args.link ?? '').trim()) || /github\.com|figma\.com|vercel\.app|netlify\.app/.test(body);
-  const hash = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-  const meets: string[] = [];
-  const missing: string[] = [];
-  args.rubric.forEach((r, i) => {
-    const keys = r.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 4);
-    const mentioned = keys.some((k) => body.includes(k));
-    const prob = (hasLink ? 0.55 : 0.2) + Math.min(words, 80) / 400 + (mentioned ? 0.25 : 0);
-    const roll = (hash(args.salt + r + i) % 100) / 100;
-    (roll < prob ? meets : missing).push(r);
-  });
-  const frac = args.rubric.length ? meets.length / args.rubric.length : 0.5;
-  const score = Math.max(25, Math.min(96, Math.round(35 + frac * 55 + (hasLink ? 6 : 0) + Math.min(words, 60) * 0.1)));
-  const recommendation: 'shortlist' | 'maybe' | 'reject' = score >= 80 ? 'shortlist' : score >= 62 ? 'maybe' : 'reject';
-  const summary =
-    recommendation === 'shortlist'
-      ? `Meets ${meets.length} of ${args.rubric.length} rubric points. Strong, well-evidenced submission${missing.length ? `, but check: ${missing[0].toLowerCase()}.` : '.'}`
-      : recommendation === 'maybe'
-        ? `Partially meets the rubric (${meets.length}/${args.rubric.length}). Gaps: ${missing.slice(0, 2).join(', ').toLowerCase()}.`
-        : `Meets only ${meets.length} of ${args.rubric.length} rubric points. ${hasLink ? 'Work is present but incomplete.' : 'No verifiable link or artifact was provided.'}`;
-  return { score, recommendation, meets, missing, summary };
-}
-
 export function roadmapFor(missing: string[]) {
   const skills = (missing.length ? missing : ['System Design']).slice(0, 3);
   const list = skills.length > 1 ? `${skills.slice(0, -1).join(', ')} and ${skills[skills.length - 1]}` : skills[0];

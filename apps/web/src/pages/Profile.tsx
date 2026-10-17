@@ -43,7 +43,7 @@ export default function Profile() {
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted">
               {t.college && <span className="inline-flex items-center gap-1.5"><GraduationCap size={14} />{t.college}</span>}
               {t.location && <span className="inline-flex items-center gap-1.5"><MapPin size={14} />{t.location}</span>}
-              {t.links.github && <a href={href(t.links.github)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><Github size={14} />GitHub</a>}
+              {t.links.github && <a href={href(t.links.github)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><Github size={14} />GitHub{t.github ? <BadgeCheck size={12} className="text-good" aria-label="Ownership confirmed" /> : <span className="text-faint">(unverified link)</span>}</a>}
               {t.links.linkedin && <a href={href(t.links.linkedin)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><Linkedin size={14} />LinkedIn</a>}
               {t.links.website && <a href={href(t.links.website)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-accent"><Globe size={14} />Website</a>}
             </div>

@@ -103,7 +103,7 @@ PLAN.md                Product, UX, and implementation plan
 The scores shown in LaunchLoop are designed to be interpretable.
 
 - **Job match score** combines role relevance, required-skill coverage, strength of verification, and work-preference fit.
-- **Verified score** weights skill level by the quality of evidence: self-reported, GitHub-verified, interview-verified, or task-verified.
+- **Verified score** counts only skills we assessed (interview-verified and task-verified). Self-reported claims and imported GitHub activity are shown but add nothing to it.
 - **Venture readiness** measures six dimensions: problem clarity, market, product, team, traction, and funding fit.
 - **Scheme eligibility** evaluates each stated rule and returns eligible, ineligible, or more-information-needed.
 - **Co-founder compatibility** considers complementary skills, commitment, startup stage, and shared values.
@@ -144,15 +144,18 @@ All demo accounts use the password `demo1234`.
 
 You can also sign up with a new account and build a profile from scratch.
 
+## How proof is checked
+
+- **Proof tasks.** Submit a public GitHub repo or a live URL. The API opens it (static inspection only, nothing is executed) and checks each rubric criterion against what is really there: files, tests, README, accessibility attributes, media queries, commit history. A criterion no check covers is shown as *needs a human look*, never guessed. If a model is configured it may judge only those leftover criteria, and its answer counts only if it quotes text that exists in the inspected files. A write-up alone is not scored. Notes also flag work that predates the task, forks, repos shared by two candidates, and repos the submitter did not author.
+- **GitHub.** Typing a username proves nothing. Linking takes a one-time code placed in a public gist on that account. Imported repo activity is labelled *GitHub activity*, capped at 60, and never counts toward the verified score. Only the interview and accepted proof tasks do.
+- **Pro plan (Razorpay).** Settings > Plan opens Razorpay Checkout for an order the server created at a server-set price. The checkout signature is verified with the key secret, the payment is re-fetched from Razorpay and matched to the order and amount, and only then is Pro granted for 30 days (extendable). Point a Razorpay webhook for `payment.captured` at `/api/billing/webhook`; it is accepted only with a valid signature and is idempotent. Pro raises interview attempts from 3 to 10.
+- Fetching candidate-supplied URLs is SSRF-guarded (public addresses only, checked at connect time). Set `GITHUB_TOKEN` to lift GitHub's 60 requests/hour anonymous limit.
+
 ## AI configuration
 
 AI-assisted features are optional. Without an API key, LaunchLoop uses deterministic fallback logic so the full demo remains functional.
 
-Set the following environment variable:
-
-```bash
-ANTHROPIC_API_KEY=your_key_here
-```
+Put `GROQ_API_KEY` in `apps/api/.env` (see `apps/api/.env.example`). `openai/gpt-oss-120b` handles grading and analysis, `openai/gpt-oss-20b` quick drafts.
 
 To intentionally use fallback responses even with a key available:
 
@@ -160,7 +163,7 @@ To intentionally use fallback responses even with a key available:
 AI_FALLBACK_ONLY=true
 ```
 
-AI outputs are schema-validated and cached in the database. Current AI-supported flows include interview grading, startup idea validation, pitch-deck review, job-description drafting, and application-pitch generation.
+AI outputs are schema-validated and cached in the database. Current AI-supported flows include interview grading, startup idea validation, pitch-deck review, job-description drafting, application-pitch generation, and the model step of proof-task review (see below). Fallback answers are not cached.
 
 ## Environment variables
 
@@ -168,10 +171,14 @@ AI outputs are schema-validated and cached in the database. Current AI-supported
 | --- | --- | --- |
 | `PORT` | `4000` | API port |
 | `JWT_SECRET` | Development value | Secret used to sign tokens; set a strong value in production |
-| `ANTHROPIC_API_KEY` | Not set | Enables live Claude-powered AI features |
+| `GROQ_API_KEY` | Not set | Enables live AI (Groq) |
 | `AI_FALLBACK_ONLY` | `false` | Forces deterministic AI fallbacks |
 | `DB_FILE` | `apps/api/data/launchloop.db` | SQLite database path |
 | `SIMULATE_PAYMENTS` | `true` | Keeps proof-task payouts in demo/simulated mode |
+| `GITHUB_TOKEN` | Not set | Optional. Raises the GitHub API rate limit for proof inspections |
+| `RZP_KEY_ID`, `RZP_KEY_SECRET` | Not set | Razorpay keys for the Pro plan (`rzp_test_` keys are test mode) |
+| `RZP_WEBHOOK_SECRET` | Not set | Secret set on the Razorpay webhook; needed to accept `POST /api/billing/webhook` |
+| `PRO_PRICE_INR` | `999` | Price of 30 days of Pro, set on the server only |
 
 ## Available commands
 

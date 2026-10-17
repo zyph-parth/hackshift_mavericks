@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Github, FileText, Plus, Trash2, Upload } from 'lucide-react';
+import { BadgeCheck, Copy, Github, FileText, Plus, Trash2, Upload } from 'lucide-react';
 import type { SkillClaim } from '@launchloop/shared';
 import { Button, Input, Textarea } from './ui';
 import { SkillChip } from './signature';
@@ -59,7 +59,7 @@ export function SkillsEditor({ compact }: { compact?: boolean }) {
         <Button type="submit" disabled={!name.trim()}><Plus size={14} /> Add</Button>
       </form>
       {rest.length > 0 && <div className="flex flex-wrap gap-1.5">{rest.map((s) => <button key={s} onClick={() => add(s)} className="rounded-[4px] border border-dashed border-border-strong px-2 py-0.5 text-xs text-muted transition hover:border-accent hover:text-accent">+ {s}</button>)}</div>}
-      <p className="text-xs text-faint">Self-reported levels are capped at 85. To go higher, prove it with the interview, GitHub or a task.</p>
+      <p className="text-xs text-faint">Self-reported levels are capped at 85. To go higher, prove it with the interview or a proof task.</p>
     </div>
   );
 }
@@ -77,13 +77,74 @@ function LevelSlider({ value, label, onCommit }: { value: number; label: string;
   );
 }
 
-/** Import evidence: paste/upload resume text, or pull public GitHub repos. */
+/**
+ * Linking GitHub is two steps, because typing a username proves nothing (anyone can type anyone's).
+ * We give a one-time code, the user puts it in a public gist on that account, and only then do we import.
+ * What we import is shown as "GitHub activity": not assessed, and not part of the verified score.
+ */
+function GithubLink({ onImported, onError }: { onImported: (added: string[]) => void; onError: (m: string) => void }) {
+  const user = useApp((s) => s.user)!;
+  const setUser = useApp((s) => s.setUser);
+  const toast = useApp((s) => s.toast);
+  const [name, setName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [again, setAgain] = useState(false);
+  const challenge = user.githubChallenge;
+  const call = async <T,>(path: string, bodyIn?: unknown): Promise<T | null> => {
+    setBusy(true); onError('');
+    try { return await post<T>(path, bodyIn); } catch (e) { onError(errMsg(e)); return null; } finally { setBusy(false); }
+  };
+  const refreshMe = async () => setUser((await api<{ user: Me }>('/me')).user);
+  const done = (d: { added: string[]; repos: number; user: Me }) => {
+    setUser(d.user); onImported(d.added);
+    toast({ title: `Imported activity from ${d.repos} repos`, body: 'It shows as GitHub activity. It is not assessed, so prove it with the interview or a task.', tone: 'good' });
+  };
+
+  if (user.github) {
+    return (
+      <div className="space-y-3">
+        <p className="flex items-center gap-2 text-sm"><BadgeCheck size={16} className="text-good" /> <span className="font-medium">@{user.github.username}</span> <span className="text-muted">ownership confirmed</span></p>
+        <p className="text-[13px] text-muted">Imported activity counts as <span className="text-text">GitHub activity</span>. It says you write code in a language, not how well, so it never counts toward your verified score. Only the interview and proof tasks do.</p>
+        <Button size="sm" loading={busy} onClick={async () => { const d = await call<{ added: string[]; repos: number; user: Me }>('/me/github/refresh'); if (d) done(d); }}>Re-import activity</Button>
+      </div>
+    );
+  }
+  if (challenge && !again) {
+    return (
+      <div className="space-y-3 text-[13px]">
+        <p className="text-muted">Prove that <span className="font-medium text-text">@{challenge.username}</span> is yours. Typing a username isn&apos;t enough, because anyone could type anyone&apos;s.</p>
+        <ol className="list-decimal space-y-1.5 pl-5 text-muted">
+          <li>Open <a href="https://gist.github.com/" target="_blank" rel="noopener noreferrer" className="text-accent underline-offset-2 hover:underline">gist.github.com</a> while signed in as @{challenge.username}.</li>
+          <li>Paste this code into the <span className="text-text">description</span>:
+            <button onClick={() => { navigator.clipboard?.writeText(challenge.code); toast({ title: 'Code copied' }); }} className="num mt-1.5 flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-surface px-3 py-2 text-left text-[12.5px] text-text" title="Copy"><span className="truncate">{challenge.code}</span><Copy size={13} className="shrink-0 text-faint" /></button>
+          </li>
+          <li>Add any file (for example <span className="num">proof.txt</span>) and choose <span className="text-text">Create public gist</span>.</li>
+        </ol>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" size="sm" loading={busy} onClick={async () => { const d = await call<{ added: string[]; repos: number; user: Me }>('/me/github/verify'); if (d) done(d); }}>I&apos;ve created it, verify</Button>
+          <Button size="sm" variant="ghost" onClick={() => setAgain(true)}>Use a different username</Button>
+        </div>
+        <p className="text-xs text-faint">The code expires in 30 minutes. You can delete the gist once you&apos;re verified.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <p className="text-[13px] text-muted">Link a GitHub account you own and we&apos;ll import your public activity. First you&apos;ll prove it&apos;s yours with a one-time code in a public gist. No login or token is needed.</p>
+      <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); const d = await call<{ code: string }>('/me/github/challenge', { username: name }); if (d) { setAgain(false); await refreshMe(); } }}>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="github-username" aria-label="GitHub username" />
+        <Button type="submit" variant="primary" loading={busy} disabled={!name.trim()}>Get code</Button>
+      </form>
+    </div>
+  );
+}
+
+/** Import evidence: paste/upload resume text, or link a GitHub account. */
 export function ImportPanel() {
   const setUser = useApp((s) => s.setUser);
   const toast = useApp((s) => s.toast);
   const [mode, setMode] = useState<'resume' | 'github'>('resume');
   const [text, setText] = useState('');
-  const [gh, setGh] = useState('');
   const [busy, setBusy] = useState(false);
   const [scan, setScan] = useState(false);
   const [found, setFound] = useState<string[] | null>(null);
@@ -117,17 +178,6 @@ export function ImportPanel() {
     } catch (e) { setError(errMsg(e)); }
     setBusy(false); setScan(false);
   };
-  const runGithub = async () => {
-    setBusy(true); setError(''); setFound(null);
-    try {
-      const d = await post<{ added: string[]; repos: number; user: Me }>('/me/github', { username: gh });
-      setUser(d.user);
-      setFound(d.added);
-      toast({ title: `Imported from ${d.repos} repos`, body: 'These skills are now GitHub-verified.', tone: 'good' });
-    } catch (e) { setError(errMsg(e)); }
-    setBusy(false);
-  };
-
   return (
     <div className="rounded-card border border-border bg-surface-2/40 p-4">
       <div className="mb-3 flex gap-1.5">
@@ -148,13 +198,7 @@ export function ImportPanel() {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          <p className="text-[13px] text-muted">We read your public repos and turn languages into GitHub-verified skills. No login or token needed.</p>
-          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); runGithub(); }}>
-            <Input value={gh} onChange={(e) => setGh(e.target.value)} placeholder="github-username" aria-label="GitHub username" />
-            <Button type="submit" variant="primary" loading={busy} disabled={!gh.trim()}>Import</Button>
-          </form>
-        </div>
+        <GithubLink onImported={(added) => { setFound(added); }} onError={setError} />
       )}
       {error && <p className="mt-3 text-[13px] text-danger" role="alert">{error}</p>}
       {found && found.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{found.map((f, i) => <motion.span key={f} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.08 }}><SkillChip name={f} evidence={mode === 'github' ? 'github' : 'self'} size="sm" /></motion.span>)}</div>}

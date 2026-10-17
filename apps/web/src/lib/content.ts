@@ -69,7 +69,7 @@ export const ARTICLES: Article[] = [
       { p: 'A match score you cannot inspect is just a number. Hover any ring on LaunchLoop and you see the full breakdown. The final score is a weighted sum of four components.' },
       { h: 'Semantic fit (35%)', p: 'How close your overall profile is to the role, beyond exact keyword matches. A frontend engineer who writes about design systems is close to a design-systems role even if the exact phrase is missing. To improve it, write a specific headline and bio.' },
       { h: 'Skill overlap (35%)', p: 'For each required skill, we look at your level, weighted by how important the role says that skill is. Missing skills score zero for that line and are listed as gaps with a suggested roadmap.' },
-      { h: 'Verified evidence (20%)', p: 'The same skill counts more when it is proven. Self-reported counts 0.4, GitHub 0.7, interview 0.9 and task-verified 1.0. This is why taking the interview is the fastest way to lift every match at once.' },
+      { h: 'Verified evidence (20%)', p: 'The same skill counts more when it is proven. Self-reported counts 0.3, imported GitHub activity 0.5, interview-verified 0.9 and task-verified 1.0. Only the last two are assessed by us, and only those count toward your verified score. This is why taking the interview is the fastest way to lift every match at once.' },
       { h: 'Role fit (10%)', p: 'Remote preference, job type and location. A small component on purpose, because it should never outweigh actual ability.' },
       { p: 'The formula is deterministic and tested. The AI only writes the one-line explanation, never the number.' },
     ],
@@ -77,9 +77,9 @@ export const ARTICLES: Article[] = [
 ];
 
 export const FAQ: { q: string; a: string; group: 'Talent' | 'Hiring' | 'Platform' }[] = [
-  { group: 'Platform', q: 'What is LaunchLoop?', a: 'A hiring and venture platform built around proof. Talent verifies skills through a voice interview, GitHub and paid tasks. Founders validate ideas, check government schemes and find co-founders. Recruiters rank blind submissions and hire from proven work.' },
-  { group: 'Platform', q: 'How do you verify skills?', a: 'Four evidence levels, each shown on every skill: self-reported, GitHub-verified, interview-verified and task-verified. You can never edit a verified level yourself. It changes only through an interview, a GitHub import or an accepted task.' },
-  { group: 'Platform', q: 'Is the AI making hiring decisions?', a: 'No. AI drafts explanations, grades interview answers and pre-reviews task submissions against a published rubric. Match scores come from a transparent formula, and a human always accepts, rejects or hires.' },
+  { group: 'Platform', q: 'What is LaunchLoop?', a: 'A hiring and venture platform built around proof. Talent proves skills through a voice interview and paid tasks, and can link a GitHub account they own. Founders validate ideas, check government schemes and find co-founders. Recruiters rank blind submissions and hire from proven work.' },
+  { group: 'Platform', q: 'How do you verify skills?', a: 'Four evidence levels, each shown on every skill: self-reported, GitHub activity, interview-verified and task-verified. Only the last two are assessed by us. GitHub activity is imported from an account you proved you own, and says you write code, not how well. You can never edit an assessed level yourself.' },
+  { group: 'Platform', q: 'Is the AI making hiring decisions?', a: 'No. AI drafts explanations, grades interview answers and opens submitted repos and sites and checks them against a published rubric, saying what it could not assess. Match scores come from a transparent formula, and a human always accepts, rejects or hires.' },
   { group: 'Platform', q: 'How do you reduce bias?', a: 'Grading and ranking see profiles without name, gender, college or photo. Recruiters review submissions blind by default, and identity is revealed only after they accept.' },
   { group: 'Talent', q: 'What does the voice interview cost?', a: 'Nothing. You get three attempts. Each is five questions, about ten minutes, and you can switch to typing at any time.' },
   { group: 'Talent', q: 'Can I get paid?', a: 'Yes. Proof tasks are funded before they open. When a founder accepts your submission the reward is released and the skills it covers become task-verified.' },
@@ -90,7 +90,7 @@ export const FAQ: { q: string; a: string; group: 'Talent' | 'Hiring' | 'Platform
 ];
 
 export const PRICING = [
-  { name: 'Talent', price: '₹0', per: 'forever', blurb: 'Everything you need to prove yourself and get hired.', features: ['3 AI voice interviews', 'GitHub verification', 'Unlimited applications', 'Match explanations', 'Public proof profile', 'Paid proof tasks'], cta: 'Start free', highlight: false },
+  { name: 'Talent', price: '₹0', per: 'forever', blurb: 'Everything you need to prove yourself and get hired.', features: ['3 AI voice interviews', 'GitHub account linking', 'Unlimited applications', 'Match explanations', 'Public proof profile', 'Paid proof tasks'], cta: 'Start free', highlight: false },
   { name: 'Founder', price: '₹999', per: 'per month', blurb: 'Validate, fund and build your first team.', features: ['Idea validator and Lean Canvas', 'Readiness radar', 'Scheme eligibility checker', 'Co-founder matching', 'Pitch deck review', 'Post roles and tasks'], cta: 'Start free for 14 days', highlight: true },
   { name: 'Recruiter', price: '8%', per: 'of task rewards', blurb: 'Pay only when you find someone worth hiring.', features: ['Unlimited roles', 'Blind AI-ranked shortlists', 'Kanban pipeline', 'Verified talent search', 'AI job description writer', 'Escrow-funded tasks'], cta: 'Start hiring', highlight: false },
 ];

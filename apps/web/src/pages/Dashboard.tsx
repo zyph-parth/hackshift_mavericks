@@ -48,13 +48,13 @@ function TalentDash() {
   const tasks = useTasks();
   const bookings = useBookings();
   const iv = useLatestInterview();
-  const verifiedCount = user.skills.filter((s) => s.evidence !== 'self').length;
-  const strength = Math.min(100, 20 + (user.headline ? 10 : 0) + (user.bio ? 10 : 0) + Math.min(user.skills.length, 6) * 3 + (user.links.github ? 8 : 0) + verifiedCount * 5 + user.interviewsDone * 12 + user.tasksDone * 10);
+  const verifiedCount = user.skills.filter((s) => s.evidence === 'interview' || s.evidence === 'task').length;
+  const strength = Math.min(100, 20 + (user.headline ? 10 : 0) + (user.bio ? 10 : 0) + Math.min(user.skills.length, 6) * 3 + (user.github ? 8 : 0) + verifiedCount * 5 + user.interviewsDone * 12 + user.tasksDone * 10);
   const top = jobs.data?.slice(0, 3) ?? [];
   const next = bookings.data?.[0];
   const steps = [
     [user.skills.length >= 3, 'Add at least 3 skills', '/profile'],
-    [!!user.links.github, 'Link GitHub for extra evidence', '/profile'],
+    [!!user.github, 'Verify your GitHub account', '/profile'],
     [user.interviewsDone > 0, 'Complete the AI interview', '/interview/new'],
     [(apps.data?.length ?? 0) > 0, 'Apply to your first role', '/jobs'],
     [user.tasksDone > 0, 'Get a proof task accepted', '/tasks'],

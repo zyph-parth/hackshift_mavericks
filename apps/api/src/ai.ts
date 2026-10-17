@@ -2,15 +2,18 @@ import { z } from 'zod';
 import { get, insert } from './db';
 import { sha } from './lib';
 
-const KEY = process.env.ANTHROPIC_API_KEY;
+const KEY = process.env.GROQ_API_KEY;
 export const AI_LIVE = !!KEY && process.env.AI_FALLBACK_ONLY !== 'true';
+
+/** Groq models: the large one for grading and analysis, the small one for quick drafts. */
+export const MODELS = { smart: 'openai/gpt-oss-120b', fast: 'openai/gpt-oss-20b' } as const;
 
 interface CacheRow {
   value: unknown;
 }
 
 /**
- * generate<T>: cache -> Claude (structured JSON, schema-validated, one repair retry) -> typed fallback.
+ * generate<T>: cache -> Groq (JSON mode, schema-validated, one repair retry) -> typed fallback.
  * Mirrors the AIService contract in PLAN.md section 5.
  */
 export async function generate<T>(opts: {
@@ -22,46 +25,49 @@ export async function generate<T>(opts: {
   fallback: () => T;
   model?: string;
 }): Promise<{ data: T; source: 'cache' | 'model' | 'fallback' }> {
-  const hash = sha(`${opts.promptId}:${opts.version ?? 1}:${JSON.stringify(opts.input)}`);
+  const model = opts.model ?? MODELS.smart;
+  const hash = sha(`${opts.promptId}:${opts.version ?? 1}:${model}:${JSON.stringify(opts.input)}`);
   const hit = get<CacheRow>('ai_cache', hash);
   if (hit) {
     const parsed = opts.schema.safeParse(hit.data.value);
     if (parsed.success) return { data: parsed.data, source: 'cache' };
   }
   if (AI_LIVE) {
+    const messages = [
+      { role: 'system', content: `${opts.system}\nRespond with a single JSON object only. No prose, no code fences.` },
+      { role: 'user', content: JSON.stringify(opts.input) },
+    ];
     for (let attempt = 0; attempt < 2; attempt++) {
+      const started = Date.now();
       try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
-          headers: { 'content-type': 'application/json', 'x-api-key': KEY!, 'anthropic-version': '2023-06-01' },
-          body: JSON.stringify({
-            model: opts.model ?? 'claude-sonnet-5-5',
-            max_tokens: 1500,
-            system: `${opts.system}\nRespond with a single JSON object only. No prose, no code fences.`,
-            messages: [{ role: 'user', content: JSON.stringify(opts.input) }],
-          }),
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
+          body: JSON.stringify({ model, messages, temperature: 0.3, max_tokens: 2000, response_format: { type: 'json_object' } }),
           signal: AbortSignal.timeout(20_000),
         });
-        if (!res.ok) break;
-        const body = (await res.json()) as { content?: { text?: string }[] };
-        const text = body.content?.[0]?.text ?? '';
+        if (!res.ok) {
+          console.warn(`[ai] ${opts.promptId} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+          if (res.status === 401 || res.status === 403) break;
+          continue;
+        }
+        const body = (await res.json()) as { choices?: { message?: { content?: string } }[]; usage?: { total_tokens?: number } };
+        const text = body.choices?.[0]?.message?.content ?? '';
         const parsed = opts.schema.safeParse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)));
+        console.log(`[ai] ${opts.promptId} ${model} ${Date.now() - started}ms ${body.usage?.total_tokens ?? '?'} tok ${parsed.success ? 'ok' : 'schema-miss'}`);
         if (parsed.success) {
-          insert('ai_cache', { value: parsed.data }, { id: hash });
+          try { insert('ai_cache', { value: parsed.data }, { id: hash }); } catch { /* cache race is harmless */ }
           return { data: parsed.data, source: 'model' };
         }
-      } catch {
-        /* retry once, then fall back */
+        // repair retry: show the model its own output and what was wrong with it
+        messages.push({ role: 'assistant', content: text }, { role: 'user', content: `That JSON did not match the required shape: ${parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}. Return corrected JSON only.` });
+      } catch (e) {
+        console.warn(`[ai] ${opts.promptId} failed: ${(e as Error).message}`);
       }
     }
   }
-  const data = opts.fallback();
-  try {
-    insert('ai_cache', { value: data }, { id: hash });
-  } catch {
-    /* cache race is harmless */
-  }
-  return { data, source: 'fallback' };
+  // fallbacks are not cached, so a live answer replaces them once the model is reachable
+  return { data: opts.fallback(), source: 'fallback' };
 }
 
 export const IdeaSchema = z.object({
@@ -79,3 +85,60 @@ export const DeckSchema = z.object({
   summary: z.string(),
   slides: z.array(z.object({ section: z.string(), score: z.number().min(0).max(100), note: z.string() })).min(1),
 });
+
+export const RubricGradeSchema = z.object({
+  results: z.array(z.object({
+    criterion: z.string(),
+    verdict: z.enum(['met', 'partial', 'cannot_assess']),
+    quote: z.string().default(''),
+    reason: z.string().default(''),
+  })),
+});
+
+/**
+ * Like `generate`, but with no canned fallback: returns null when the model is off or fails,
+ * so callers report "not assessed" instead of presenting an invented answer.
+ */
+export async function generateStrict<T>(opts: { promptId: string; system: string; input: unknown; schema: z.ZodType<T>; model?: string }): Promise<T | null> {
+  if (!AI_LIVE) return null;
+  const model = opts.model ?? MODELS.smart;
+  const hash = sha(`${opts.promptId}:strict:${model}:${JSON.stringify(opts.input)}`);
+  const hit = get<CacheRow>('ai_cache', hash);
+  if (hit) {
+    const parsed = opts.schema.safeParse(hit.data.value);
+    if (parsed.success) return parsed.data;
+  }
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${KEY}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.1,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: `${opts.system}\nRespond with a single JSON object only. No prose, no code fences.` },
+          { role: 'user', content: JSON.stringify(opts.input) },
+        ],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) {
+      console.warn(`[ai] ${opts.promptId} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+      return null;
+    }
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = body.choices?.[0]?.message?.content ?? '';
+    const parsed = opts.schema.safeParse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)));
+    if (!parsed.success) {
+      console.warn(`[ai] ${opts.promptId}: response did not match the schema`);
+      return null;
+    }
+    try { insert('ai_cache', { value: parsed.data }, { id: hash }); } catch { /* cache race is harmless */ }
+    return parsed.data;
+  } catch (e) {
+    console.warn(`[ai] ${opts.promptId} failed: ${(e as Error).message}`);
+    return null;
+  }
+}

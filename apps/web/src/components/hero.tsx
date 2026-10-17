@@ -110,16 +110,22 @@ export interface Row {
   name: string;
   hue: number;
   score: number;
-  rec: 'shortlist' | 'maybe' | 'reject';
+  rec: 'shortlist' | 'maybe' | 'reject' | 'review';
   meets: string[];
   missing: string[];
   subtitle?: string;
+  status?: 'assessed' | 'partial' | 'unassessed' | 'sample';
+  assessed?: number;
+  total?: number;
 }
 const REC = {
   shortlist: { tone: 'good', label: 'Shortlist' },
   maybe: { tone: 'warn', label: 'Maybe' },
+  review: { tone: 'neutral', label: 'Needs review' },
   reject: { tone: 'danger', label: 'Pass' },
 } as const;
+/** Inspected-and-good first, then "a human should look", then inspected-and-poor. */
+const REC_RANK = { shortlist: 0, maybe: 1, review: 2, reject: 3 } as const;
 
 export function ShortlistBoard({
   rows,
@@ -145,7 +151,7 @@ export function ShortlistBoard({
   }, []);
 
   const ordered = useMemo(() => {
-    if (phase === 'sorted') return [...rows].sort((a, b) => b.score - a.score);
+    if (phase === 'sorted') return [...rows].sort((a, b) => REC_RANK[a.rec] - REC_RANK[b.rec] || b.score - a.score);
     return [...rows].sort((a, b) => a.id.localeCompare(b.id) * -1);
   }, [rows, phase]);
 
@@ -153,7 +159,7 @@ export function ShortlistBoard({
     <div className="space-y-2">
       <div className="flex items-center gap-2 px-1 pb-1 text-xs text-muted">
         <Asterisk size={13} className="text-accent" />
-        {phase === 'sorted' ? 'AI reviewed and ranked all submissions' : 'AI is reviewing submissions…'}
+        {phase === 'sorted' ? 'Ranked by what each project was inspected to contain' : 'Ordering submissions…'}
         {anonymous && <Badge className="ml-auto">Identity blinded</Badge>}
       </div>
       {ordered.map((r, i) => {
@@ -179,7 +185,7 @@ export function ShortlistBoard({
                 <p className="truncate text-sm font-medium">{anonymous ? `Candidate ${String(r.id).slice(-4).toUpperCase()}` : r.name}</p>
                 {phase === 'sorted' && (
                   <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15 + i * 0.05 }}>
-                    <Badge tone={accepted ? 'good' : rec.tone}>{accepted ? 'Accepted' : rec.label}</Badge>
+                    <Badge tone={accepted ? 'good' : r.status === 'sample' ? 'neutral' : rec.tone}>{accepted ? 'Accepted' : r.status === 'sample' ? 'Demo' : rec.label}</Badge>
                   </motion.span>
                 )}
               </div>
@@ -201,9 +207,14 @@ export function ShortlistBoard({
               {phase === 'unsorted' ? (
                 <div className="skeleton ml-auto h-6 w-10" />
               ) : (
-                <span className="num text-lg font-semibold" style={{ color: scoreColor(r.score) }}>
-                  <CountUp to={r.score} duration={1.2} />
-                </span>
+                r.status === 'unassessed' ? (
+                  <span className="num text-lg text-faint" title="Nothing could be assessed automatically">—</span>
+                ) : (
+                  <span className="block">
+                    <span className="num block text-lg font-semibold" style={{ color: scoreColor(r.score) }}><CountUp to={r.score} duration={1.2} /></span>
+                    {r.status === 'partial' && <span className="num block text-[10px] text-faint">{r.assessed}/{r.total} checked</span>}
+                  </span>
+                )
               )}
             </div>
           </motion.button>

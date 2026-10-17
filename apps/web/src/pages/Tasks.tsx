@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { BadgeCheck, Clock, FileText, Link2, Plus, Asterisk, X } from 'lucide-react';
+import { BadgeCheck, Clock, FileText, Link2, Plus, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, ChipInput, EmptyState, ErrorState, Field, Input, LinkButton, PageHeader, Segmented, Skeleton, Textarea } from '@/components/ui';
-import { CountUp, Meter } from '@/components/signature';
+import { CountUp } from '@/components/signature';
+import { ReviewPanel } from '@/components/review';
 import { useApp, useRole } from '@/lib/store';
 import { patchApi, post, type TaskT } from '@/lib/api';
 import { errMsg, useMyTasks, useTask, useTasks } from '@/lib/queries';
@@ -118,6 +119,7 @@ export default function TaskDetail() {
   const [link, setLink] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [err, setErr] = useState('');
   if (isError) return <ErrorState onRetry={refetch} />;
   if (isLoading || !task) return <Skeleton className="h-96" />;
@@ -129,12 +131,18 @@ export default function TaskDetail() {
     try { await patchApi(`/tasks/${task.id}`, { status }); await qc.invalidateQueries(); toast({ title: status === 'closed' ? 'Task closed' : 'Task reopened' }); } catch (e) { toast({ title: errMsg(e), tone: 'warn' }); }
   };
 
+  const rerun = async () => {
+    if (!task.mine) return;
+    setRerunning(true);
+    try { await post(`/submissions/${task.mine.id}/reinspect`); await qc.invalidateQueries(); toast({ title: 'Inspection re-run', tone: 'good' }); } catch (e) { toast({ title: errMsg(e), tone: 'warn' }); }
+    setRerunning(false);
+  };
   const submit = async () => {
     setBusy(true); setErr('');
     try {
       await post(`/tasks/${task.id}/submit`, kind === 'link' ? { link } : { text });
       await qc.invalidateQueries();
-      toast({ title: 'Submission received', body: 'The AI pre-review is ready below.', tone: 'good' });
+      toast({ title: 'Submission received', body: 'We opened your project and checked it against the rubric. The result is below.', tone: 'good' });
     } catch (e) { setErr(errMsg(e)); }
     setBusy(false);
   };
@@ -150,7 +158,7 @@ export default function TaskDetail() {
           <div className="mt-4 flex flex-wrap gap-2">{task.skills.map((s) => <Badge key={s}>{s}</Badge>)}</div>
           <Card className="mt-6 p-5">
             <h3 className="tight font-semibold">Rubric</h3>
-            <p className="text-[13px] text-muted">How the AI and the founder will score you.</p>
+            <p className="text-[13px] text-muted">We open your repo or site and check each item against what is really there. Anything we can&apos;t check goes to the founder.</p>
             <ul className="mt-3 space-y-2.5">{task.rubric.map((r, i) => <motion.li key={r} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-start gap-2.5 text-sm"><span className="num mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] text-accent">{i + 1}</span>{r}</motion.li>)}</ul>
           </Card>
         </div>
@@ -165,23 +173,29 @@ export default function TaskDetail() {
             {mine ? (
               <div>
                 <div className="text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }} className={cn('mx-auto flex h-12 w-12 items-center justify-center rounded-full', mine.status === 'rejected' ? 'bg-danger/15 text-danger' : 'bg-good/15 text-good')}>{mine.status === 'rejected' ? <X /> : <BadgeCheck />}</motion.div><p className="tight mt-3 font-semibold">{mine.status === 'accepted' ? 'Accepted and paid' : mine.status === 'rejected' ? 'Not selected' : 'Submitted'}</p></div>
-                <div className="mt-4"><div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-sm"><Asterisk size={13} className="text-accent" /> AI pre-review</span><span className="num text-2xl font-semibold" style={{ color: scoreColor(mine.aiScore) }}><CountUp to={mine.aiScore} /></span></div><div className="mt-2"><Meter value={mine.aiScore} /></div><p className="mt-3 text-[13px] text-muted">{mine.summary}</p>
-                  <ul className="mt-3 space-y-1 text-[13px]">{mine.meets.map((m) => <li key={m} className="text-good">✓ {m}</li>)}{mine.missing.map((m) => <li key={m} className="text-danger">✕ {m}</li>)}</ul></div>
+                <p className="mt-4 text-[13px] text-muted">{mine.summary}</p>
               </div>
             ) : canSubmit ? (
               <div className="space-y-4">
                 <h3 className="tight font-semibold">Submit your work</h3>
                 <Segmented id="sub" value={kind} onChange={setKind} options={[{ value: 'link', label: <span className="flex items-center gap-1.5"><Link2 size={13} />Link</span> }, { value: 'text', label: <span className="flex items-center gap-1.5"><FileText size={13} />Write-up</span> }]} />
-                <Field label={kind === 'link' ? 'Repo or prototype URL' : 'Your write-up'} hint={kind === 'link' ? 'GitHub, Figma, a deployed URL…' : 'Explain what you built and the decisions you made.'}>
+                <Field label={kind === 'link' ? 'Repo or prototype URL' : 'Your write-up'} hint={kind === 'link' ? 'A public GitHub repo or a live URL. We open it and check each rubric item against what is really there.' : 'A write-up alone is not scored. Add a project link, or the reviewer will have to assess it by hand.'}>
                   {kind === 'text' ? <Textarea rows={6} value={text} onChange={(e) => setText(e.target.value)} /> : <Input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://github.com/you/project" />}
                 </Field>
                 {err && <p className="text-[13px] text-danger" role="alert">{err}</p>}
-                <Button variant="primary" className="w-full" size="lg" loading={busy} disabled={kind === 'link' ? !/^https?:\/\//.test(link) : text.trim().length < 20} onClick={submit}>Submit for review</Button>
+                <Button variant="primary" className="w-full" size="lg" loading={busy} disabled={kind === 'link' ? !/^https?:\/\//.test(link) : text.trim().length < 20} onClick={submit}>{busy ? 'Inspecting your project…' : 'Submit for inspection'}</Button>
+                {busy && <p className="text-center text-xs text-faint">Reading your repository and files. This can take up to half a minute.</p>}
               </div>
             ) : (
               <div className="text-center text-sm text-muted">{isOwner ? <LinkButton to={`/tasks/${task.id}/review`} variant="primary">Review submissions</LinkButton> : role === 'talent' ? (expired || task.status === 'closed' ? 'This task is no longer accepting submissions.' : null) : 'Switch to your talent role to submit.'}</div>
             )}
           </Card>
+          {mine && (
+            <Card className="overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3"><span className="text-sm font-medium">Inspection result</span>{mine.review.status === 'unassessed' || mine.review.status === 'sample' ? <span className="num text-2xl text-faint">—</span> : <span className="num text-2xl font-semibold" style={{ color: scoreColor(mine.review.score) }}><CountUp to={mine.review.score} suffix="%" /></span>}</div>
+              <ReviewPanel review={mine.review} onRerun={mine.status === 'submitted' && mine.review.status !== 'sample' ? rerun : undefined} rerunning={rerunning} />
+            </Card>
+          )}
         </aside>
       </div>
     </>

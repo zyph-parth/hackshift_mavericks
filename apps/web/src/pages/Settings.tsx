@@ -53,7 +53,7 @@ export default function Settings() {
         </div>
         <Field label="About"><Textarea rows={3} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} maxLength={600} /></Field>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="GitHub"><Input value={f.github} onChange={(e) => setF({ ...f, github: e.target.value })} placeholder="github.com/you" /></Field>
+          <Field label="GitHub link (not verified)" hint="A typed link proves nothing. Prove ownership from Profile to import activity."><Input value={f.github} onChange={(e) => setF({ ...f, github: e.target.value })} placeholder="github.com/you" /></Field>
           <Field label="LinkedIn"><Input value={f.linkedin} onChange={(e) => setF({ ...f, linkedin: e.target.value })} placeholder="linkedin.com/in/you" /></Field>
           <Field label="Website"><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} placeholder="you.dev" /></Field>
         </div>

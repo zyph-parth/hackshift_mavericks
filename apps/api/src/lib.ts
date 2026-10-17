@@ -5,7 +5,9 @@ import {
   verifiedScore,
   type FounderProfile,
   type Job,
+  type Recommendation,
   type Role,
+  type SubmissionReview,
   type SkillClaim,
   type Talent,
 } from '@launchloop/shared';
@@ -53,6 +55,10 @@ export interface UserData {
   founder?: Omit<FounderProfile, 'id' | 'name' | 'hue' | 'headline' | 'location'>;
   plan: 'free' | 'pro';
   seeded?: boolean;
+  /** Set only after the user proved they control this GitHub account (see /api/me/github/verify). */
+  github?: { username: string; verifiedAt: number; importedAt?: number };
+  /** A pending proof-of-ownership challenge. */
+  githubChallenge?: { username: string; code: string; expires: number };
 }
 
 export interface JobData extends Omit<Job, 'id'> {
@@ -78,11 +84,23 @@ export interface SubmissionData {
   link: string;
   text: string;
   aiScore: number;
-  recommendation: 'shortlist' | 'maybe' | 'reject';
+  recommendation: Recommendation;
   meets: string[];
   missing: string[];
   summary: string;
   status: 'submitted' | 'accepted' | 'rejected';
+  /** What we actually inspected and concluded. Missing on old rows and seeded demo data. */
+  review?: SubmissionReview;
+  linkKey?: string;
+}
+
+/** Seeded demo submissions were never inspected. Say so instead of dressing them up as reviews. */
+export function sampleReview(link: string, score: number): SubmissionReview {
+  return {
+    status: 'sample', method: 'checks', score, coverage: 0, assessed: 0, total: 0, criteria: [],
+    flags: [{ level: 'info', text: 'Demo submission. It was never inspected, so its score is illustrative only.' }],
+    inspected: { kind: 'none', url: link, status: 'none', facts: {}, filesRead: [] }, at: 0,
+  };
 }
 export interface ApplicationData {
   jobId: string;
@@ -135,6 +153,8 @@ export function toTalent(u: UserDoc): Talent {
 export function publicUser(u: UserDoc) {
   const d = u.data;
   return {
+    /** Only present when ownership of the GitHub account was proven. `links.github` is just a typed-in link. */
+    github: d.github ? { username: d.github.username } : null,
     id: u.id,
     username: d.username,
     name: d.name,
@@ -156,7 +176,7 @@ export function publicUser(u: UserDoc) {
 }
 
 export function privateUser(u: UserDoc) {
-  return { ...publicUser(u), email: u.data.email, activeRole: u.data.activeRole, onboarded: u.data.onboarded, plan: u.data.plan, founder: u.data.founder, mentorId: u.data.mentorId };
+  return { ...publicUser(u), githubChallenge: u.data.githubChallenge && u.data.githubChallenge.expires > Date.now() ? { username: u.data.githubChallenge.username, code: u.data.githubChallenge.code } : null, email: u.data.email, activeRole: u.data.activeRole, onboarded: u.data.onboarded, plan: u.data.plan, founder: u.data.founder, mentorId: u.data.mentorId };
 }
 
 /* ---------------------------------- auth --------------------------------- */

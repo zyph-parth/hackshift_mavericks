@@ -15,7 +15,7 @@ function why(r: JobRow) {
   const m = r.match;
   if (!m) return r.job.summary;
   const best = [...m.matched].sort((a, b) => b.level - a.level)[0];
-  const ev = { self: 'self-reported', github: 'GitHub-verified', interview: 'interview-verified', task: 'task-verified' }[best?.evidence ?? 'self'];
+  const ev = { self: 'self-reported', github: 'GitHub-imported', interview: 'interview-verified', task: 'task-verified' }[best?.evidence ?? 'self'];
   const gap = m.missing.length ? ` Closing the ${m.missing[0]} gap would lift this further.` : ' You cover every required skill.';
   return best ? `Your ${ev} ${best.name} (${best.level}) is the strongest signal for ${r.job.startup}.${gap}` : `No skill overlap yet.${gap}`;
 }
