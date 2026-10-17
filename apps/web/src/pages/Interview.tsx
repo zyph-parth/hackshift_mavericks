@@ -153,7 +153,7 @@ export default function Interview() {
         {phase === 'intro' && (
           <motion.main key="intro" exit={{ opacity: 0, scale: 0.98 }} className="relative z-10 mx-auto flex flex-1 flex-col items-center justify-center px-5 text-center">
             <VoiceOrb state="idle" level={0} size={220} />
-            <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.7, ease: EASE }} className="tight mt-2 text-4xl font-semibold md:text-5xl">Ready when <span className="display text-accent">you</span> are.</motion.h1>
+            <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.7, ease: EASE }} className="tight mt-2 text-4xl font-semibold md:text-5xl">Ready when <span className="display">you</span> are.</motion.h1>
             <p className="mt-3 max-w-md text-muted">Five questions, about ten minutes. Talk naturally. Your verified skills update the moment you finish.</p>
             <ul className="mt-6 space-y-1.5 text-left text-sm text-muted">
               <li className="flex items-center gap-2"><Mic size={14} className="text-accent" /> Allow the mic, or switch to typing at any time</li>
@@ -183,7 +183,7 @@ export default function Interview() {
                 <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="tight mt-2 text-2xl font-semibold">Reading your answers…</motion.p>
               ) : (
                 <>
-                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.1em] text-accent">{q.skill}</p>
+                  <p className="mb-2 text-[11px] uppercase text-faint">{q.skill}</p>
                   <h2 className="tight max-w-2xl text-center text-xl font-medium leading-snug md:text-2xl" aria-live="polite">
                     {q.q.split(' ').map((w, i) => (
                       <motion.span key={idx + '-' + i} initial={false} animate={{ opacity: i < words ? 1 : 0.12, filter: i < words ? 'blur(0px)' : 'blur(3px)' }} transition={{ duration: 0.3 }} className="mr-[0.28em] inline-block">{w}</motion.span>

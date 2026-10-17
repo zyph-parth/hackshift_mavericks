@@ -72,7 +72,7 @@ export default function Onboarding() {
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div key="s0" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.35, ease: EASE }}>
-                <h1 className="tight text-3xl font-semibold md:text-4xl">What brings you <span className="display text-accent">here, {user.name.split(' ')[0]}?</span></h1>
+                <h1 className="tight text-3xl font-semibold md:text-4xl">What brings you <span className="display">here, {user.name.split(' ')[0]}?</span></h1>
                 <p className="mt-2 text-muted">Pick one or more. You can switch between them any time.</p>
                 <div className="mt-8 grid gap-3 sm:grid-cols-2">
                   {ROLE_CARDS.map((c) => {
@@ -92,7 +92,7 @@ export default function Onboarding() {
             )}
             {step === 1 && (
               <motion.div key="s1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.35, ease: EASE }} className="space-y-4">
-                <h1 className="tight text-3xl font-semibold md:text-4xl">A few <span className="display text-accent">basics.</span></h1>
+                <h1 className="tight text-3xl font-semibold md:text-4xl">A few <span className="display">basics.</span></h1>
                 <Field label="Headline" hint="One line on what you do best."><Input value={f.headline} onChange={(e) => setF({ ...f, headline: e.target.value })} placeholder={talent ? 'Frontend engineer · design-minded' : 'Founder building…'} maxLength={140} /></Field>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={talent ? 'College or company' : 'Organisation'}><Input value={f.college} onChange={(e) => setF({ ...f, college: e.target.value })} placeholder="IIIT Delhi" /></Field>
@@ -106,21 +106,21 @@ export default function Onboarding() {
               <motion.div key="s2" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.35, ease: EASE }} className="space-y-6">
                 {talent && (
                   <>
-                    <div><h1 className="tight text-3xl font-semibold md:text-4xl">Show us what you <span className="display text-accent">can do.</span></h1><p className="mt-2 text-muted">Import from a resume or GitHub, then fine-tune. Everything starts self-reported until you prove it.</p></div>
+                    <div><h1 className="tight text-3xl font-semibold md:text-4xl">Show us what you <span className="display">can do.</span></h1><p className="mt-2 text-muted">Import from a resume or GitHub, then fine-tune. Everything starts self-reported until you prove it.</p></div>
                     <ImportPanel />
                     <SkillsEditor compact />
                   </>
                 )}
                 {founder && (
                   <>
-                    {talent ? <h2 className="tight border-t border-border pt-6 text-xl font-semibold">As a founder, what do you bring?</h2> : <div><h1 className="tight text-3xl font-semibold md:text-4xl">What do you <span className="display text-accent">bring?</span></h1><p className="mt-2 text-muted">This powers co-founder matching.</p></div>}
+                    {talent ? <h2 className="tight border-t border-border pt-6 text-xl font-semibold">As a founder, what do you bring?</h2> : <div><h1 className="tight text-3xl font-semibold md:text-4xl">What do you <span className="display">bring?</span></h1><p className="mt-2 text-muted">This powers co-founder matching.</p></div>}
                     <Field label="I bring"><ChipInput value={fnd.has} onChange={(has) => setFnd({ ...fnd, has })} suggestions={FOUNDER_SKILLS} placeholder="Sales, Operations…" /></Field>
                     <Field label="I need"><ChipInput value={fnd.needs} onChange={(needs) => setFnd({ ...fnd, needs })} suggestions={FOUNDER_SKILLS} placeholder="Backend, Design…" /></Field>
                     <Field label="What we value"><ChipInput value={fnd.values} onChange={(values) => setFnd({ ...fnd, values })} suggestions={FOUNDER_VALUES} /></Field>
                   </>
                 )}
                 {!talent && !founder && (
-                  <div><h1 className="tight text-3xl font-semibold md:text-4xl">You&apos;re <span className="display text-accent">ready.</span></h1><p className="mt-2 text-muted">Post your first role or proof task from the Hiring console.</p></div>
+                  <div><h1 className="tight text-3xl font-semibold md:text-4xl">You&apos;re <span className="display">ready.</span></h1><p className="mt-2 text-muted">Post your first role or proof task from the Hiring console.</p></div>
                 )}
               </motion.div>
             )}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { BadgeCheck, Clock, FileText, Link2, Plus, Sparkles, X } from 'lucide-react';
+import { BadgeCheck, Clock, FileText, Link2, Plus, Asterisk, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, ChipInput, EmptyState, ErrorState, Field, Input, LinkButton, PageHeader, Segmented, Skeleton, Textarea } from '@/components/ui';
 import { CountUp, Meter } from '@/components/signature';
@@ -165,7 +165,7 @@ export default function TaskDetail() {
             {mine ? (
               <div>
                 <div className="text-center"><motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 18 }} className={cn('mx-auto flex h-12 w-12 items-center justify-center rounded-full', mine.status === 'rejected' ? 'bg-danger/15 text-danger' : 'bg-good/15 text-good')}>{mine.status === 'rejected' ? <X /> : <BadgeCheck />}</motion.div><p className="tight mt-3 font-semibold">{mine.status === 'accepted' ? 'Accepted and paid' : mine.status === 'rejected' ? 'Not selected' : 'Submitted'}</p></div>
-                <div className="mt-4"><div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-sm"><Sparkles size={13} className="text-accent" /> AI pre-review</span><span className="num text-2xl font-semibold" style={{ color: scoreColor(mine.aiScore) }}><CountUp to={mine.aiScore} /></span></div><div className="mt-2"><Meter value={mine.aiScore} /></div><p className="mt-3 text-[13px] text-muted">{mine.summary}</p>
+                <div className="mt-4"><div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-sm"><Asterisk size={13} className="text-accent" /> AI pre-review</span><span className="num text-2xl font-semibold" style={{ color: scoreColor(mine.aiScore) }}><CountUp to={mine.aiScore} /></span></div><div className="mt-2"><Meter value={mine.aiScore} /></div><p className="mt-3 text-[13px] text-muted">{mine.summary}</p>
                   <ul className="mt-3 space-y-1 text-[13px]">{mine.meets.map((m) => <li key={m} className="text-good">✓ {m}</li>)}{mine.missing.map((m) => <li key={m} className="text-danger">✕ {m}</li>)}</ul></div>
               </div>
             ) : canSubmit ? (

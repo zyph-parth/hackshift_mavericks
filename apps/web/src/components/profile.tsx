@@ -58,7 +58,7 @@ export function SkillsEditor({ compact }: { compact?: boolean }) {
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Add a skill, e.g. React" aria-label="Add a skill" />
         <Button type="submit" disabled={!name.trim()}><Plus size={14} /> Add</Button>
       </form>
-      {rest.length > 0 && <div className="flex flex-wrap gap-1.5">{rest.map((s) => <button key={s} onClick={() => add(s)} className="rounded-full border border-dashed border-border-strong px-2.5 py-0.5 text-xs text-muted transition hover:border-accent hover:text-accent">+ {s}</button>)}</div>}
+      {rest.length > 0 && <div className="flex flex-wrap gap-1.5">{rest.map((s) => <button key={s} onClick={() => add(s)} className="rounded-[4px] border border-dashed border-border-strong px-2 py-0.5 text-xs text-muted transition hover:border-accent hover:text-accent">+ {s}</button>)}</div>}
       <p className="text-xs text-faint">Self-reported levels are capped at 85. To go higher, prove it with the interview, GitHub or a task.</p>
     </div>
   );

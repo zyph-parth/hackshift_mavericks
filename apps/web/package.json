@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "^5.2.8",
-    "@fontsource-variable/geist-mono": "^5.2.7",
-    "@fontsource/instrument-serif": "^5.2.8",
+    "@fontsource-variable/newsreader": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@launchloop/shared": "*",
     "@tanstack/react-query": "^5.104.3",
     "clsx": "^2.1.1",

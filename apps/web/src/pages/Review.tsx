@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { Briefcase, Check, CreditCard, ExternalLink, Lock, MessageSquare, Sparkles, X } from 'lucide-react';
+import { Briefcase, Check, CreditCard, ExternalLink, Lock, MessageSquare, Asterisk, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Input, Modal, PageHeader, Skeleton } from '@/components/ui';
 import { AIStreamText, CountUp, Meter, SkillChip } from '@/components/signature';
@@ -85,7 +85,7 @@ export default function Review() {
                     )}
                   </div>
                   <div className="bg-surface p-4">
-                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted"><Sparkles size={12} className="text-accent" /> AI review</p>
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted"><Asterisk size={12} className="text-accent" /> AI review</p>
                     <p className="text-[13px] leading-relaxed text-muted"><AIStreamText key={cur.id} text={cur.summary} wps={28} /></p>
                     <div className="mt-3 space-y-1.5">{cur.meets.map((m) => <p key={m} className="flex items-center gap-1.5 text-[13px] text-good"><Check size={13} />{m}</p>)}{cur.missing.map((m) => <p key={m} className="flex items-center gap-1.5 text-[13px] text-danger"><X size={13} />{m}</p>)}</div>
                   </div>

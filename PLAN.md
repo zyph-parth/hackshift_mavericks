@@ -56,33 +56,34 @@ Backend module and frontend feature folders follow spec §5.3 and §5.4 exactly.
 
 ### 2.2 Visual language
 
-**Theme**: dark-first (the demo runs in dark mode), with full light-mode parity. Background is not pure black: a near-black with a faint warm noise texture and a single soft radial glow behind hero content.
+**Theme**: "Paper & ink". Warm graphite at night, off-white paper by day, with full parity. No glows, noise, gradient blobs or cursor spotlights: the page is plain on purpose so the evidence carries it.
 
 **Color tokens** (CSS variables, Tailwind v4 `@theme`):
 
 | Token | Dark | Light | Use |
 |---|---|---|---|
-| `--bg` | `#0B0B0D` | `#FAFAF9` | page |
-| `--surface` | `#131316` | `#FFFFFF` | cards |
-| `--surface-2` | `#1B1B1F` | `#F4F4F2` | nested, inputs |
-| `--border` | `#26262B` | `#E7E5E4` | hairlines (1px everywhere) |
-| `--text` | `#F4F4F5` | `#18181B` | primary |
-| `--text-muted` | `#A1A1AA` | `#52525B` | secondary |
-| `--accent` | `#FF6A3D` "Launch orange" | `#E8542A` | CTAs, focus, live states. **The only accent** |
-| `--ev-self` | `#71717A` grey | | self-reported |
-| `--ev-github` | `#3B82F6` blue | | GitHub-verified |
-| `--ev-interview` | `#A855F7` purple | | interview-verified |
-| `--ev-task` | `#22C55E` green | | task-verified |
-| `--danger` / `--warn` | `#EF4444` / `#F59E0B` | | |
+| `--bg` | `#141311` | `#F4F1EA` | page |
+| `--surface` | `#1B1A17` | `#FFFDF8` | cards |
+| `--surface-2` | `#22211D` | `#F8F5EE` | inputs, table footers |
+| `--border` | `#2E2C28` | `#E2DDD1` | hairlines (1px everywhere) |
+| `--text` | `#EDE9E1` | `#1D1B17` | primary |
+| `--text-muted` | `#A8A299` | `#5B564D` | secondary |
+| `--accent` | `#EE7044` | `#C8501F` | CTAs, focus, live states. **The only accent** |
+| `--ev-self` | `#8A847B` grey | `#8D877C` | self-reported |
+| `--ev-github` | `#6B9BEA` blue | `#2F62C9` | GitHub-verified |
+| `--ev-interview` | `#B18CE8` purple | `#7B47C9` | interview-verified |
+| `--ev-task` | `#5FB67E` green | `#2E8150` | task-verified |
+| `--danger` / `--warn` | `#E2685D` / `#D9A441` | `#C23B2F` / `#A8700C` | |
 
 The accent is orange so it never collides with the four evidence colors, which carry meaning.
 
 **Typography**
-- UI: **Geist Sans** (400/500/600). Numbers: **Geist Mono** with tabular figures, so scores don't jitter while they animate.
-- Display: **Instrument Serif italic**, used sparingly for the one emotional word in a headline ("Hire by *proof*, not resumes"). This is the premium signature.
-- Scale: 12 / 13 / 14 (body) / 16 / 20 / 24 / 32 / 48 / 72 (landing hero). Tight tracking on display sizes (−0.02em).
+- UI: **IBM Plex Sans** (400/500/600), 14px body.
+- Titles: **Newsreader** (text serif, upright, weight 500) for every `h1` and large `h2`. No italic "magic word" in headlines.
+- Numbers and labels: **IBM Plex Mono** with tabular figures for small numbers and for uppercase section labels, so they read like a spec sheet. Large figures (stats, scores) switch to Newsreader lining numerals.
+- Scale: 11 (labels) / 13 / 14 (body) / 15 / 20 / 28 / 40 (page titles) / 86 (landing hero).
 
-**Shape and depth**: radius 10px (cards), 8px (inputs), full (chips). Depth comes from borders and a 1px inner top highlight (`inset 0 1px 0 rgb(255 255 255 / .04)`), not heavy shadows. Glass (backdrop-blur) only on the top nav and the command palette.
+**Shape and depth**: radius 6px (cards), 5px (inputs, buttons), 4px (skill tags and badges; no pills). Depth comes from hairlines and one soft drop on hover, never from glow. Lists inside cards are divided rows, not cards inside cards. Glass only on the top nav and the command palette.
 
 **Iconography**: Lucide, 16px, 1.5 stroke.
 
@@ -96,7 +97,7 @@ The accent is orange so it never collides with the four evidence colors, which c
 
 - `prefers-reduced-motion` turns every animation into a fade. Not optional.
 - Page transitions: 8px rise + fade, never a full slide.
-- Numbers always **count up** (Geist Mono, tabular) and never just appear.
+- Numbers always **count up** (tabular figures) and never just appear.
 
 ### 2.4 Signature components (build these first, polish them most)
 | Component | What makes it premium |
@@ -161,7 +162,7 @@ The accent is orange so it never collides with the four evidence colors, which c
 | 8 | Talent dashboard | Bento: Verified Score ring, profile strength, top 3 matches, active tasks, skill-gap roadmap progress, upcoming mentor session |
 | 9 | Profile editor + public profile `/u/:username` | Resume upload shows parsing as a scan line over the PDF, then fields fill in one by one. Public profile = shareable proof page (OG image with the score) |
 | 10 | Interview report `/interview/:id/report` | Per-question score, transcript, feedback, strengths/improvements, "Retake (2 left)" |
-| 11 | Tasks board `/tasks` | Cards with reward front and center (₹ in Geist Mono), deadline countdown, "Funded ✓" badge |
+| 11 | Tasks board `/tasks` | Cards with reward front and center (₹ in Newsreader numerals), deadline countdown, "Funded ✓" badge |
 | 12 | Task detail / submit | Brief, rubric, submit (link / file / text), then live AI pre-review status |
 | 13 | Co-founder matches `/studio/cofounders` | Card stack with compatibility %, a have/need Venn-style overlap, "Why you two", 3 trial-project ideas, "Propose trial" |
 | 14 | Mentor directory + booking `/mentors` | Grid with AI "Recommended for your stage" row on top. Booking sheet: calendar slots → goal → pay (₹499 via Razorpay / free) → Jitsi link + add to calendar |

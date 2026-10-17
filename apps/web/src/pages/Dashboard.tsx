@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ArrowRight, CalendarClock, FlaskConical, Inbox, Mic, Plus, Sparkles, UserSearch, Video } from 'lucide-react';
+import { ArrowRight, CalendarClock, FlaskConical, Inbox, Mic, Plus, Asterisk, UserSearch, Video } from 'lucide-react';
 import { readiness, readinessTotal } from '@launchloop/shared';
 import { Avatar, Badge, Card, EmptyState, LinkButton, PageHeader, Skeleton } from '@/components/ui';
 import { CountUp, EvidenceLegend, MatchScoreRing, Meter, SkillChip } from '@/components/signature';
@@ -74,8 +74,8 @@ function TalentDash() {
         <Card className="h-full p-5">
           <Title to="/jobs" link="All jobs">Top matches for you</Title>
           {jobs.isLoading ? <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-[68px]" />)}</div> : user.skills.length === 0 ? <EmptyState title="Matches start with skills" body="Add a few skills or import GitHub and we’ll rank every open role for you." action={<LinkButton to="/profile" variant="primary">Add skills</LinkButton>} /> : (
-            <div className="space-y-2">{top.map(({ job, match }, i) => (
-              <Link key={job.id} to={`/jobs?open=${job.id}`} className="card-hover flex items-center gap-4 rounded-lg border border-border bg-surface-2/50 p-3">
+            <div className="divide-y divide-border">{top.map(({ job, match }, i) => (
+              <Link key={job.id} to={`/jobs?open=${job.id}`} className="-mx-2 rounded-md px-2 py-3 transition-colors hover:bg-surface-2 flex items-center gap-4">
                 <MatchScoreRing score={match?.total ?? 0} size={52} stroke={4} delay={0.1 * i} />
                 <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{job.title}</p><p className="text-xs text-muted">{job.startup} · {job.location}</p></div>
                 <div className="hidden gap-1.5 sm:flex">{match?.matched.slice(0, 2).map((s) => <SkillChip key={s.name} size="sm" name={s.name} evidence={s.evidence} />)}</div>
@@ -115,13 +115,13 @@ function TalentDash() {
       <Cell span="md:col-span-4">
         <Card className="h-full p-5">
           <Title to="/tasks" link="Browse">Open proof tasks</Title>
-          <div className="space-y-2">{(tasks.data ?? []).slice(0, 2).map((t) => (
-            <Link key={t.id} to={`/tasks/${t.id}`} className="card-hover flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-2/50 p-3">
+          <div className="divide-y divide-border">{(tasks.data ?? []).slice(0, 2).map((t) => (
+            <Link key={t.id} to={`/tasks/${t.id}`} className="-mx-2 rounded-md px-2 py-3 transition-colors hover:bg-surface-2 flex items-center justify-between gap-3">
               <div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="text-xs text-muted">{t.startup} · {timeLeft(t.deadline)}</p></div>
               <div className="text-right"><p className="num font-semibold">{inr(t.reward)}</p>{t.mine && <Badge tone="good">Submitted</Badge>}</div>
             </Link>
           ))}</div>
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-accent-soft p-3 text-[13px]"><Sparkles size={14} className="shrink-0 text-accent" /> Earned so far: <span className="num font-semibold">{inr(user.earned)}</span></div>
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-accent-soft p-3 text-[13px]"><Asterisk size={14} className="shrink-0 text-accent" /> Earned so far: <span className="num font-semibold">{inr(user.earned)}</span></div>
         </Card>
       </Cell>
       <Cell span="md:col-span-4">
@@ -207,7 +207,7 @@ function MentorDash() {
       <Cell span="md:col-span-8">
         <Card className="p-5">
           <Title to="/sessions" link="All sessions">Next up</Title>
-          {bookings.data?.length ? <div className="space-y-2">{bookings.data.slice(0, 3).map((b) => <div key={b.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-2/50 p-3">{b.mentee && <Avatar name={b.mentee.name} hue={b.mentee.hue} />}<div className="min-w-0 flex-1"><p className="text-sm font-medium">{b.mentee?.name}</p><p className="truncate text-xs text-muted">{b.slot} · {b.goal}</p></div></div>)}</div> : <p className="text-sm text-muted">No bookings yet. Your profile is live in the directory.</p>}
+          {bookings.data?.length ? <div className="divide-y divide-border">{bookings.data.slice(0, 3).map((b) => <div key={b.id} className="flex items-center gap-3 py-3">{b.mentee && <Avatar name={b.mentee.name} hue={b.mentee.hue} />}<div className="min-w-0 flex-1"><p className="text-sm font-medium">{b.mentee?.name}</p><p className="truncate text-xs text-muted">{b.slot} · {b.goal}</p></div></div>)}</div> : <p className="text-sm text-muted">No bookings yet. Your profile is live in the directory.</p>}
         </Card>
       </Cell>
       <Cell span="md:col-span-12"><InboxCard /></Cell>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Check, CircleHelp, FileUp, Lightbulb, Sparkles, Users, X } from 'lucide-react';
+import { ArrowRight, Check, CircleHelp, FileUp, Lightbulb, Asterisk, Users, X } from 'lucide-react';
 import { READINESS_AXES, SCHEMES, checkScheme, readiness, readinessTotal, type IdeaAnalysis, type StartupFacts } from '@launchloop/shared';
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Skeleton, Switch, Tabs, Textarea } from '@/components/ui';
 import { AIStreamText, MatchScoreRing, ReadinessRadar } from '@/components/signature';
@@ -144,7 +144,7 @@ function Deck() {
       await run(f.name, text);
     } catch { setState('idle'); toast({ title: 'Could not read that PDF', tone: 'warn' }); }
   };
-  if (state === 'busy') return <div className="space-y-3"><p className="flex items-center gap-2 text-sm text-muted"><Sparkles size={14} className="animate-pulse text-accent" /> Reviewing {name}…</p>{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16" />)}</div>;
+  if (state === 'busy') return <div className="space-y-3"><p className="flex items-center gap-2 text-sm text-muted"><Asterisk size={14} className="animate-pulse text-accent" /> Reviewing {name}…</p>{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16" />)}</div>;
   if (state === 'done' && review) return (
     <div className="space-y-3">
       <Card className="flex flex-wrap items-center gap-5 p-5"><MatchScoreRing score={review.overall} size={88} stroke={6} label="deck" /><div className="min-w-0 flex-1"><p className="truncate text-xs text-faint">{name}</p><p className="mt-1 text-sm text-muted"><AIStreamText text={review.summary} wps={30} /></p></div></Card>
@@ -159,7 +159,7 @@ function Deck() {
       <Card className="space-y-3 p-5">
         <p className="text-sm font-medium">Or paste your slide text</p>
         <Textarea rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Problem: … Solution: … Market: … Traction: … Team: … Ask: …" aria-label="Deck text" maxLength={30000} />
-        <div className="flex justify-end"><Button variant="primary" disabled={paste.trim().length < 40} onClick={() => run('Pasted deck', paste)}><Sparkles size={14} /> Review</Button></div>
+        <div className="flex justify-end"><Button variant="primary" disabled={paste.trim().length < 40} onClick={() => run('Pasted deck', paste)}><Asterisk size={14} /> Review</Button></div>
       </Card>
       {err && <p className="text-[13px] text-danger" role="alert">{err}</p>}
     </div>
@@ -213,15 +213,15 @@ export default function Studio() {
               {tab === 'validate' && (
                 stage === 'input' ? (
                   <div className="mx-auto max-w-2xl py-6">
-                    <h2 className="tight text-center text-3xl font-semibold md:text-4xl">Describe your idea in <span className="display text-accent">3 lines.</span></h2>
+                    <h2 className="tight text-center text-3xl font-semibold md:text-4xl">Describe your idea in <span className="display">3 lines.</span></h2>
                     <Textarea rows={6} value={v.text} onChange={(e) => save({ text: e.target.value })} placeholder="Who has the problem, what you are building, and what proof you have so far…" className="mt-8 !p-4 !text-[15px]" aria-label="Your idea" maxLength={4000} />
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                       <button onClick={() => save({ text: EXAMPLE })} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-accent"><Lightbulb size={14} /> Use an example</button>
-                      <Button variant="primary" size="lg" disabled={v.text.trim().length < 20} onClick={go}><Sparkles size={15} /> Validate with AI</Button>
+                      <Button variant="primary" size="lg" disabled={v.text.trim().length < 20} onClick={go}><Asterisk size={15} /> Validate with AI</Button>
                     </div>
                   </div>
                 ) : stage === 'loading' ? (
-                  <div className="space-y-4"><p className="flex items-center gap-2 text-sm text-muted"><Sparkles size={14} className="animate-pulse text-accent" /> Analysing your idea…</p><div className="grid gap-4 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-36" />)}</div></div>
+                  <div className="space-y-4"><p className="flex items-center gap-2 text-sm text-muted"><Asterisk size={14} className="animate-pulse text-accent" /> Analysing your idea…</p><div className="grid gap-4 md:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-36" />)}</div></div>
                 ) : (
                   <div className="space-y-5">
                     <div className="flex items-center justify-between"><Badge tone="good"><Check size={11} /> Validated and saved</Badge><div className="flex gap-2"><Button size="sm" onClick={() => setStage('input')}>Edit idea</Button><Button size="sm" variant="primary" onClick={() => setTab('ready')}>Check readiness <ArrowRight size={13} /></Button></div></div>

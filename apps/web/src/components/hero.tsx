@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Check, Sparkles, X as XIcon } from 'lucide-react';
+import { ArrowRight, Check, Asterisk, X as XIcon } from 'lucide-react';
 import { Avatar, Badge, Button } from './ui';
 import { CountUp, Meter, MatchScoreRing, SkillChip } from './signature';
 import { cn, EASE, scoreColor } from '@/lib/utils';
@@ -54,7 +54,7 @@ export function ScoreReveal({
           transition={{ delay: 0.45, duration: 0.7, ease: EASE }}
           className="tight mt-2 text-4xl font-semibold md:text-5xl"
         >
-          Your proof, <span className="display text-accent">earned.</span>
+          Your proof, <span className="display">earned.</span>
         </motion.h2>
 
         <motion.div
@@ -152,7 +152,7 @@ export function ShortlistBoard({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 px-1 pb-1 text-xs text-muted">
-        <Sparkles size={13} className="text-accent" />
+        <Asterisk size={13} className="text-accent" />
         {phase === 'sorted' ? 'AI reviewed and ranked all submissions' : 'AI is reviewing submissions…'}
         {anonymous && <Badge className="ml-auto">Identity blinded</Badge>}
       </div>

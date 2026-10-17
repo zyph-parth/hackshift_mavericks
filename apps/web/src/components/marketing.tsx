@@ -100,7 +100,7 @@ export function PageHero({ eyebrow, title, sub, children }: { eyebrow: string; t
       <div className="pointer-events-none absolute inset-0" style={{ background: 'var(--glow)' }} />
       <div className="grid-bg pointer-events-none absolute inset-0" />
       <div className="relative mx-auto max-w-[1200px] px-4 py-16 md:px-6 md:py-24">
-        <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-xs font-medium uppercase tracking-[0.1em] text-accent">{eyebrow}</motion.p>
+        <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-[11px] uppercase text-faint">{eyebrow}</motion.p>
         <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.6, ease: EASE }} className="tight mt-3 max-w-3xl text-4xl font-semibold leading-[1.05] md:text-6xl">{title}</motion.h1>
         {sub && <motion.p initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16, duration: 0.6, ease: EASE }} className="mt-5 max-w-2xl text-base text-muted md:text-lg">{sub}</motion.p>}
         {children}

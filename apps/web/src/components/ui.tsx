@@ -11,7 +11,7 @@ import {
 import { AnimatePresence, LayoutGroup, motion, type HTMLMotionProps } from 'motion/react';
 import { Link, type LinkProps } from 'react-router-dom';
 import { Check, Info, Moon, Sun, X } from 'lucide-react';
-import { cn, EASE, hueColor, initials } from '@/lib/utils';
+import { cn, EASE, initials } from '@/lib/utils';
 import { toggleThemeAnimated, useApp } from '@/lib/store';
 
 /* ------------------------------- Logo ---------------------------------- */
@@ -19,11 +19,11 @@ export function Logo({ size = 28, text = true }: { size?: number; text?: boolean
   return (
     <span className="inline-flex items-center gap-2.5">
       <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-        <rect width="32" height="32" rx="9" fill="var(--accent)" />
+        <rect width="32" height="32" rx="5" fill="var(--accent)" />
         <path d="M9 9v14h14" fill="none" stroke="var(--accent-fg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx="21" cy="11" r="2.6" fill="var(--accent-fg)" />
       </svg>
-      {text && <span className="tight text-[15px] font-semibold">LaunchLoop</span>}
+      {text && <span className="serif text-[19px] leading-none">LaunchLoop</span>}
     </span>
   );
 }
@@ -32,17 +32,16 @@ export function Logo({ size = 28, text = true }: { size?: number; text?: boolean
 type Variant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 const variants: Record<Variant, string> = {
-  primary:
-    'bg-accent text-accent-fg hover:brightness-110 shadow-[0_0_0_1px_rgb(255_255_255/.12)_inset,0_8px_24px_-8px_var(--accent)]',
-  secondary: 'bg-surface-2 text-text hover:bg-surface-3 border border-border',
+  primary: 'bg-accent text-accent-fg hover:brightness-[1.06] shadow-[inset_0_-1px_0_rgb(0_0_0/.2)]',
+  secondary: 'bg-surface text-text hover:bg-surface-2 border border-border-strong shadow-[0_1px_0_rgb(0_0_0/.04)]',
   outline: 'border border-border-strong text-text hover:bg-surface-2',
   ghost: 'text-muted hover:text-text hover:bg-surface-2',
   danger: 'bg-danger/15 text-danger hover:bg-danger/25 border border-danger/30',
 };
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-lg',
-  md: 'h-9 px-4 text-sm gap-2 rounded-lg',
-  lg: 'h-11 px-6 text-[15px] gap-2 rounded-xl',
+  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-[5px]',
+  md: 'h-9 px-4 text-sm gap-2 rounded-[5px]',
+  lg: 'h-11 px-5 text-[15px] gap-2 rounded-md',
 };
 
 type BtnProps = { variant?: Variant; size?: Size; loading?: boolean } & HTMLMotionProps<'button'>;
@@ -53,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, BtnProps>(function Button(
   return (
     <motion.button
       ref={ref}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.985 }}
       transition={{ duration: 0.12 }}
       disabled={disabled || loading}
       className={cn(
@@ -81,7 +80,7 @@ export function LinkButton({
   return (
     <Link
       className={cn(
-        'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap font-medium transition-[background,filter,color,border-color] duration-150 active:scale-[.97]',
+        'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap font-medium transition-[background,filter,color,border-color] duration-150 active:scale-[.985]',
         variants[variant],
         sizes[size],
         className,
@@ -100,7 +99,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        'h-10 w-full rounded-input border border-border bg-surface-2 px-3 text-sm text-text outline-none transition placeholder:text-faint focus:border-accent focus:ring-4 focus:ring-accent/15',
+        'h-10 w-full rounded-input border border-border bg-surface-2 px-3 text-sm text-text outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/15',
         className,
       )}
       {...p}
@@ -113,7 +112,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
       <textarea
         ref={ref}
         className={cn(
-          'w-full resize-none rounded-input border border-border bg-surface-2 p-3 text-sm text-text outline-none transition placeholder:text-faint focus:border-accent focus:ring-4 focus:ring-accent/15',
+          'w-full resize-none rounded-input border border-border bg-surface-2 p-3 text-sm text-text outline-none transition placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-accent/15',
           className,
         )}
         {...p}
@@ -173,7 +172,7 @@ export function Badge({
     danger: 'bg-danger/10 text-danger border-danger/30',
   }[tone];
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium', t, className)}>
+    <span className={cn('inline-flex items-center gap-1 rounded-[3px] border px-1.5 py-px text-[11px] font-medium', t, className)}>
       {children}
     </span>
   );
@@ -187,8 +186,8 @@ export function Avatar({ name, hue, size = 36, className }: { name: string; hue:
         width: size,
         height: size,
         fontSize: size * 0.38,
-        background: `linear-gradient(135deg, ${hueColor(hue, 0.68)}, ${hueColor(hue + 40, 0.5)})`,
-        boxShadow: 'inset 0 1px 0 rgb(255 255 255 / .25)',
+        background: `oklch(0.56 0.075 ${hue})`,
+        letterSpacing: '0.02em',
       }}
       aria-hidden
     >
@@ -211,13 +210,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-border-strong px-6 py-16 text-center">
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" className="mb-4 text-faint">
-        <circle cx="36" cy="36" r="30" stroke="currentColor" strokeDasharray="3 5" />
-        <circle cx="36" cy="36" r="18" stroke="currentColor" opacity=".6" />
-        <circle cx="48" cy="24" r="4" fill="var(--accent)" />
-      </svg>
-      <h3 className="tight text-base font-semibold">{title}</h3>
+    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-border-strong px-6 py-14 text-center">
+      <p className="mb-3 text-[11px] uppercase text-faint">Nothing here yet</p>
+      <h3 className="serif text-xl">{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted">{body}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -252,7 +247,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <LayoutGroup id={id}>
-      <div role="tablist" className={cn('relative inline-flex rounded-lg border border-border bg-surface-2 p-0.5', className)}>
+      <div role="tablist" className={cn('relative inline-flex rounded-md border border-border bg-surface-2 p-0.5', className)}>
         {options.map((o) => {
           const active = o.value === value;
           return (
@@ -262,14 +257,14 @@ export function Segmented<T extends string>({
               aria-selected={active}
               onClick={() => onChange(o.value)}
               className={cn(
-                'relative z-10 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors',
+                'relative z-10 rounded-[4px] px-3 py-1 text-[13px] font-medium transition-colors',
                 active ? 'text-text' : 'text-muted hover:text-text',
               )}
             >
               {active && (
                 <motion.span
                   layoutId="seg"
-                  className="absolute inset-0 -z-10 rounded-md border border-border bg-surface shadow-sm"
+                  className="absolute inset-0 -z-10 rounded-[4px] border border-border-strong bg-surface"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
@@ -314,7 +309,7 @@ export function Tabs<T extends string>({
               {active && (
                 <motion.span
                   layoutId="tab-underline"
-                  className="absolute inset-x-2 -bottom-px h-0.5 rounded bg-accent"
+                  className="absolute inset-x-3 -bottom-px h-[2px] bg-text"
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
@@ -560,11 +555,11 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
       <div>
-        {eyebrow && <p className="mb-1.5 text-xs font-medium uppercase tracking-[0.08em] text-accent">{eyebrow}</p>}
-        <h1 className="tight text-[28px] font-semibold leading-tight md:text-[32px]">{title}</h1>
-        {sub && <p className="mt-1.5 max-w-xl text-muted">{sub}</p>}
+        {eyebrow && <p className="mb-3 flex items-center gap-2 text-[11px] uppercase text-faint"><span className="h-[7px] w-[7px] bg-accent" aria-hidden />{eyebrow}</p>}
+        <h1 className="text-[32px] md:text-[40px]">{title}</h1>
+        {sub && <p className="mt-2 max-w-xl text-[15px] text-muted">{sub}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -606,7 +601,7 @@ export function ChipInput({
       <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-input border border-border bg-surface-2 p-1.5 transition focus-within:border-accent focus-within:ring-4 focus-within:ring-accent/15">
         <AnimatePresence initial={false}>
           {value.map((v) => (
-            <motion.span key={v} layout initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="inline-flex items-center gap-1 rounded-full border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium">
+            <motion.span key={v} layout initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="inline-flex items-center gap-1 rounded-[4px] border border-border-strong bg-surface px-2 py-0.5 text-xs font-medium">
               {v}
               <button type="button" onClick={() => onChange(value.filter((x) => x !== v))} aria-label={`Remove ${v}`} className="text-faint hover:text-text"><X size={12} /></button>
             </motion.span>
@@ -626,7 +621,7 @@ export function ChipInput({
       </div>
       {rest.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {rest.map((s) => <button key={s} type="button" onClick={() => add(s)} className="rounded-full border border-dashed border-border-strong px-2.5 py-0.5 text-xs text-muted transition hover:border-accent hover:text-accent">+ {s}</button>)}
+          {rest.map((s) => <button key={s} type="button" onClick={() => add(s)} className="rounded-[4px] border border-dashed border-border-strong px-2 py-0.5 text-xs text-muted transition hover:border-accent hover:text-accent">+ {s}</button>)}
         </div>
       )}
     </div>

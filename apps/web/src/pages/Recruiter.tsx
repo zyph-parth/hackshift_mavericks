@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { MessageSquare, Plus, Sparkles } from 'lucide-react';
+import { MessageSquare, Plus, Asterisk } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, ChipInput, EmptyState, ErrorState, Field, Input, PageHeader, Segmented, Sheet, Skeleton, Switch, Tabs, Textarea } from '@/components/ui';
 import { AIStreamText, MatchScoreRing, SkillChip } from '@/components/signature';
@@ -98,7 +98,7 @@ function PostJob({ open, onClose }: { open: boolean; onClose: () => void }) {
         <Field label="Job title"><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="Founding Frontend Engineer" maxLength={100} /></Field>
         <Field label="Required skills" hint="Order matters: the first skills are weighted highest."><ChipInput value={req} onChange={setReq} suggestions={SKILL_SUGGESTIONS} placeholder="React, TypeScript…" max={10} /></Field>
         <div>
-          <div className="mb-1.5 flex items-center justify-between"><span className="text-[13px] font-medium">Description</span><Button size="sm" loading={ai} onClick={draft}><Sparkles size={13} /> Write with AI</Button></div>
+          <div className="mb-1.5 flex items-center justify-between"><span className="text-[13px] font-medium">Description</span><Button size="sm" loading={ai} onClick={draft}><Asterisk size={13} /> Write with AI</Button></div>
           <Textarea rows={8} value={f.summary} onChange={(e) => setF({ ...f, summary: e.target.value })} maxLength={4000} aria-label="Description" />
           {typed && <p className="mt-1 text-xs text-faint"><AIStreamText text="Drafted from your title and skills. Edit anything." run /></p>}
         </div>

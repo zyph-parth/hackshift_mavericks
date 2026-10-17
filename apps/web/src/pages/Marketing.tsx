@@ -35,7 +35,7 @@ export function HowItWorks() {
   const ev: Evidence[] = ['self', 'github', 'interview', 'task'];
   return (
     <>
-      <PageHero eyebrow="How it works" title={<>Every claim gets an <span className="display text-accent">evidence level.</span></>} sub="LaunchLoop replaces guesswork with a ladder of proof. Here is exactly how it works for each side of the market, and how every number is computed." />
+      <PageHero eyebrow="How it works" title={<>Every claim gets an <span className="display">evidence level.</span></>} sub="LaunchLoop replaces guesswork with a ladder of proof. Here is exactly how it works for each side of the market, and how every number is computed." />
       <section className="mx-auto max-w-[1200px] px-4 py-16 md:px-6">
         <Segmented id="how" value={who} onChange={setWho} options={[{ value: 'talent', label: 'For talent' }, { value: 'founder', label: 'For founders' }, { value: 'recruiter', label: 'For recruiters' }]} />
         <AnimatePresence mode="wait">
@@ -88,7 +88,7 @@ export function HowItWorks() {
 export function Pricing() {
   return (
     <>
-      <PageHero eyebrow="Pricing" title={<>Free to prove. Pay only to <span className="display text-accent">hire.</span></>} sub="Talent never pays. Founders get the full studio. Recruiters pay a small share only when they accept work they value." />
+      <PageHero eyebrow="Pricing" title={<>Free to prove. Pay only to <span className="display">hire.</span></>} sub="Talent never pays. Founders get the full studio. Recruiters pay a small share only when they accept work they value." />
       <section className="mx-auto max-w-[1200px] px-4 py-16 md:px-6">
         <div className="grid gap-5 md:grid-cols-3">
           {PRICING.map((p, i) => (
@@ -114,7 +114,7 @@ export function Pricing() {
 export function About() {
   return (
     <>
-      <PageHero eyebrow="About" title={<>Resumes describe the past. <span className="display text-accent">Proof</span> predicts the future.</>} sub="LaunchLoop started with a simple frustration: the best people we knew were invisible to the companies that needed them, because their proof lived in places a resume cannot reach." />
+      <PageHero eyebrow="About" title={<>Resumes describe the past. <span className="display">Proof</span> predicts the future.</>} sub="LaunchLoop started with a simple frustration: the best people we knew were invisible to the companies that needed them, because their proof lived in places a resume cannot reach." />
       <section className="mx-auto grid max-w-[1200px] gap-12 px-4 py-16 md:grid-cols-2 md:px-6">
         <Reveal>
           <h2 className="tight text-3xl font-semibold">Why this exists</h2>
@@ -151,7 +151,7 @@ export function FAQPage() {
   const list = FAQ.filter((f) => group === 'All' || f.group === group);
   return (
     <>
-      <PageHero eyebrow="FAQ" title={<>Questions, <span className="display text-accent">answered.</span></>} />
+      <PageHero eyebrow="FAQ" title={<>Questions, <span className="display">answered.</span></>} />
       <section className="mx-auto max-w-3xl px-4 py-14 md:px-6">
         <Segmented id="faq" value={group} onChange={setGroup} options={(['All', 'Talent', 'Hiring', 'Platform'] as const).map((v) => ({ value: v, label: v }))} />
         <div className="mt-6 divide-y divide-border rounded-card border border-border bg-surface">
@@ -177,13 +177,13 @@ export function FAQPage() {
 export function Resources() {
   return (
     <>
-      <PageHero eyebrow="Resources" title={<>Practical guides for <span className="display text-accent">builders.</span></>} sub="Short, specific and written by people who have hired, been hired and raised." />
+      <PageHero eyebrow="Resources" title={<>Practical guides for <span className="display">builders.</span></>} sub="Short, specific and written by people who have hired, been hired and raised." />
       <section className="mx-auto max-w-[1200px] px-4 py-14 md:px-6">
         <div className="grid gap-5 md:grid-cols-2">
           {ARTICLES.map((a, i) => (
             <Reveal key={a.slug} delay={i * 0.06}>
               <Link to={`/resources/${a.slug}`} className="group block h-full">
-                <SpotCard className="flex h-full flex-col p-6" whileHover={{ y: -3 }}>
+                <SpotCard className="flex h-full flex-col p-6">
                   <div className="flex items-center gap-3 text-xs text-muted"><Badge tone="accent">{a.tag}</Badge><span>{a.read} read</span><span className="text-faint">·</span><span>{a.date}</span></div>
                   <h2 className="tight mt-4 text-xl font-semibold">{a.title}</h2>
                   <p className="mt-2 flex-1 text-sm text-muted">{a.excerpt}</p>

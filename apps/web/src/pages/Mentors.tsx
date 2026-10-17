@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { CalendarPlus, Check, CreditCard, MessageSquare, Sparkles, Star, Video } from 'lucide-react';
+import { CalendarPlus, Check, CreditCard, MessageSquare, Asterisk, Star, Video } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Mentor } from '@launchloop/shared';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Field, PageHeader, Sheet, Skeleton, Textarea } from '@/components/ui';
@@ -13,11 +13,11 @@ import { cn, EASE, inr } from '@/lib/utils';
 
 function MentorCard({ m, i, onBook, booked, rec }: { m: Mentor; i: number; onBook: () => void; booked: boolean; rec?: boolean }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.5, ease: EASE }} whileHover={{ y: -3 }}>
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06, duration: 0.5, ease: EASE }}>
       <Card hover className="flex h-full flex-col p-5">
         <div className="flex items-start gap-3.5">
           <Avatar name={m.name} hue={m.hue} size={48} />
-          <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="tight font-semibold">{m.name}</h3>{rec && <Badge tone="accent"><Sparkles size={10} /> For you</Badge>}</div><p className="truncate text-[13px] text-muted">{m.title}, {m.company}</p></div>
+          <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h3 className="tight font-semibold">{m.name}</h3>{rec && <Badge tone="accent"><Asterisk size={10} /> For you</Badge>}</div><p className="truncate text-[13px] text-muted">{m.title}, {m.company}</p></div>
           <span className="num flex items-center gap-1 text-sm"><Star size={13} className="fill-warn text-warn" />{m.rating}</span>
         </div>
         <p className="mt-3 flex-1 text-[13px] text-muted">{m.bio}</p>
@@ -134,7 +134,7 @@ export default function Mentors() {
       <PageHeader eyebrow="Mentors" title="Talk to people who've done it" sub="Free sessions for first-time founders, ₹499 for the rest." />
       {isError ? <ErrorState onRetry={refetch} /> : isLoading ? <div className="grid gap-4 md:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-56" />)}</div> : !data?.length ? <EmptyState title="No mentors yet" body="Check back soon." /> : (
         <>
-          <section className="mb-10"><h2 className="tight mb-4 flex items-center gap-2 text-sm font-semibold"><Sparkles size={14} className="text-accent" /> {founderMode ? `Recommended for your stage (${stage})` : 'Recommended for your career'}</h2><div className="grid gap-4 md:grid-cols-3">{rec.map((m, i) => <MentorCard key={m.id} m={m} i={i} rec booked={mineIds.has(m.id)} onBook={() => setOpen(m)} />)}</div></section>
+          <section className="mb-10"><h2 className="tight mb-4 flex items-center gap-2 text-sm font-semibold"><Asterisk size={14} className="text-accent" /> {founderMode ? `Recommended for your stage (${stage})` : 'Recommended for your career'}</h2><div className="grid gap-4 md:grid-cols-3">{rec.map((m, i) => <MentorCard key={m.id} m={m} i={i} rec booked={mineIds.has(m.id)} onBook={() => setOpen(m)} />)}</div></section>
           <h2 className="tight mb-4 text-sm font-semibold">Everyone</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{data.map((m, i) => <MentorCard key={m.id} m={m} i={i} booked={mineIds.has(m.id)} onBook={() => setOpen(m)} />)}</div>
         </>

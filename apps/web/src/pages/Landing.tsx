@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView } from 'motion/react';
+import { motion, useInView, useScroll, useTransform } from 'motion/react';
 import Lenis from 'lenis';
 import { ArrowRight, BadgeCheck, Compass, FlaskConical, Mic, Scale, Wallet } from 'lucide-react';
-import { PROOF_FEED } from '@launchloop/shared';
-import { Badge, LinkButton, Reveal, SpotCard } from '@/components/ui';
+import { EVIDENCE_WEIGHT, TALENTS } from '@launchloop/shared';
+import { LinkButton, Reveal, SpotCard } from '@/components/ui';
 import { CountUp, MatchScoreRing, SkillChip } from '@/components/signature';
 import { cn, EASE, evColor } from '@/lib/utils';
 import { useStats } from '@/lib/queries';
@@ -26,71 +26,68 @@ function useLenis() {
   }, []);
 }
 
-function ProofCard({ p }: { p: (typeof PROOF_FEED)[number] }) {
+const EV_LABEL = { self: 'Self-reported', github: 'GitHub', interview: 'Interview', task: 'Proof task' } as const;
+
+const SHOWCASE = [...TALENTS].sort((a, b) => b.verifiedScore - a.verifiedScore)[0];
+
+/** A static "proof record": what a recruiter actually sees, laid out like a ledger. */
+function ProofRecord() {
+  const t = SHOWCASE;
+  const rows = [...t.skills].sort((a, b) => EVIDENCE_WEIGHT[b.evidence] - EVIDENCE_WEIGHT[a.evidence] || b.level - a.level).slice(0, 6);
   return (
-    <div className="card glass flex w-[260px] items-center gap-3 p-3">
-      <MatchScoreRing score={p.score} size={44} stroke={4} />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{p.name}</p>
-        <p className="flex items-center gap-1.5 text-xs text-muted">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: evColor(p.ev) }} />
-          {p.skill} verified
-        </p>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.6, ease: EASE }} className="card relative hidden w-full max-w-[440px] justify-self-end shadow-[var(--shadow)] lg:block">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3 text-[11px] uppercase text-faint"><span>Proof record</span><span>@{t.username}</span></div>
+      <div className="px-5 pb-4 pt-5">
+        <p className="serif text-[28px] leading-none">{t.name}</p>
+        <p className="mt-1.5 text-[13px] text-muted">{t.headline}</p>
       </div>
-    </div>
+      <table className="w-full text-[13px]">
+        <thead><tr className="border-y border-border text-left text-[11px] uppercase text-faint"><th className="px-5 py-2 font-medium">Skill</th><th className="py-2 font-medium">Evidence</th><th className="px-5 py-2 text-right font-medium">Score</th></tr></thead>
+        <tbody>
+          {rows.map((k) => (
+            <tr key={k.name} className="border-b border-border last:border-0">
+              <td className="px-5 py-2.5 font-medium">{k.name}</td>
+              <td className="py-2.5 text-muted"><span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full" style={{ background: evColor(k.evidence) }} />{EV_LABEL[k.evidence]}</span></td>
+              <td className="num px-5 py-2.5 text-right">{k.level}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex items-baseline justify-between border-t border-border bg-surface-2 px-5 py-3.5">
+        <span className="text-[11px] uppercase text-faint">Verified score</span>
+        <span className="serif text-[26px] leading-none">{t.verifiedScore}<span className="text-sm text-faint"> / 100</span></span>
+      </div>
+    </motion.div>
   );
 }
 
 function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-  const cols = [PROOF_FEED, [...PROOF_FEED].reverse(), [...PROOF_FEED.slice(3), ...PROOF_FEED.slice(0, 3)]];
   return (
-    <section ref={ref} className="relative overflow-hidden pt-20 md:pt-28">
-      <div className="pointer-events-none absolute inset-0" style={{ background: 'var(--glow)' }} />
-      <div className="grid-bg pointer-events-none absolute inset-0" />
-      {/* drifting proof feed */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[60%] justify-end gap-4 overflow-hidden pr-6 opacity-60 [mask-image:linear-gradient(to_bottom,transparent,#000_20%,#000_80%,transparent)] xl:flex">
-        {cols.map((c, i) => (
-          <div key={i} className="flex flex-col gap-4" style={{ animation: `marquee-up ${38 + i * 9}s linear infinite ${i % 2 ? 'reverse' : ''}`, marginTop: i * 40 }}>
-            {[...c, ...c].map((p, j) => <ProofCard key={j} p={p} />)}
+    <section className="relative border-b border-border pt-16 md:pt-24">
+      <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-4 pb-20 md:px-6 md:pb-28 lg:grid-cols-[1fr_440px]">
+        <div>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="flex items-center gap-2 text-[11px] uppercase text-faint">
+            <span className="h-[7px] w-[7px] bg-accent" aria-hidden /> Built at IIIT Delhi, HackShift
+          </motion.p>
+          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }} className="mt-6 max-w-3xl text-[48px] leading-[0.98] sm:text-6xl md:text-7xl lg:text-[86px]">
+            Hire by proof,<br /><span className="text-muted">not resumes.</span>
+          </motion.h1>
+          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.6, ease: EASE }} className="mt-7 max-w-xl text-base text-muted md:text-[17px]">
+            Talent proves skills in a voice interview and paid tasks. Founders validate ideas, find co-founders and hire from verified proof. One loop, no guesswork.
+          </motion.p>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.6, ease: EASE }} className="mt-9 flex flex-wrap gap-3">
+            <LinkButton to="/signup" variant="primary" size="lg">I&apos;m talent <ArrowRight size={16} /></LinkButton>
+            <LinkButton to="/login" variant="secondary" size="lg">Try a demo account</LinkButton>
+          </motion.div>
+          <div className="mt-12 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-5 text-xs text-muted">
+            {[['self', 'Self-reported'], ['github', 'GitHub'], ['interview', 'Interview'], ['task', 'Task-verified']].map(([e, l]) => (
+              <span key={e} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: evColor(e) }} />{l}</span>
+            ))}
+            <span className="text-faint">Every number shows its evidence.</span>
           </div>
-        ))}
+        </div>
+        <ProofRecord />
       </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] bg-gradient-to-r from-bg via-bg/50 to-transparent xl:block" />
-
-      <motion.div style={{ y, opacity: fade }} className="relative mx-auto max-w-[1200px] px-4 pb-24 md:px-6 md:pb-36">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-          <Badge tone="accent" className="!px-3 !py-1 !text-xs">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> Built at IIIT Delhi · HackShift
-          </Badge>
-        </motion.div>
-        <h1 className="tight mt-6 max-w-3xl text-[44px] font-semibold leading-[1.02] sm:text-6xl md:text-7xl lg:text-[84px]">
-          {['Hire', 'by'].map((w, i) => (
-            <motion.span key={w} className="mr-[0.25em] inline-block" initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ delay: 0.15 + i * 0.08, duration: 0.8, ease: EASE }}>{w}</motion.span>
-          ))}
-          <motion.span className="display mr-[0.25em] inline-block text-accent" initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ delay: 0.35, duration: 0.9, ease: EASE }}>proof,</motion.span>
-          <br />
-          {['not', 'resumes.'].map((w, i) => (
-            <motion.span key={w} className="mr-[0.25em] inline-block" initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ delay: 0.5 + i * 0.08, duration: 0.8, ease: EASE }}>{w}</motion.span>
-          ))}
-        </h1>
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8, duration: 0.7, ease: EASE }} className="mt-6 max-w-xl text-base text-muted md:text-lg">
-          Talent proves skills in a voice interview and paid tasks. Founders validate ideas, find co-founders and hire from verified proof. One loop, no guesswork.
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95, duration: 0.7, ease: EASE }} className="mt-9 flex flex-wrap gap-3">
-          <LinkButton to="/signup" variant="primary" size="lg">I&apos;m talent <ArrowRight size={16} /></LinkButton>
-          <LinkButton to="/login" variant="outline" size="lg">Try a demo account</LinkButton>
-        </motion.div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }} className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
-          {[['self', 'Self-reported'], ['github', 'GitHub'], ['interview', 'Interview'], ['task', 'Task-verified']].map(([e, l]) => (
-            <span key={e} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: evColor(e) }} />{l}</span>
-          ))}
-          <span className="text-faint">— every number shows its evidence.</span>
-        </motion.div>
-      </motion.div>
     </section>
   );
 }
@@ -128,8 +125,8 @@ function Loop() {
   return (
     <section id="loop" className="mx-auto max-w-[1200px] px-4 py-24 md:px-6 md:py-32">
       <Reveal>
-        <p className="text-xs font-medium uppercase tracking-[0.1em] text-accent">The loop</p>
-        <h2 className="tight mt-3 max-w-2xl text-4xl font-semibold md:text-5xl">Every proof makes the next <span className="display text-accent">match</span> better.</h2>
+        <p className="text-[11px] uppercase text-faint">The loop</p>
+        <h2 className="tight mt-3 max-w-2xl text-4xl font-semibold md:text-5xl">Every proof makes the next <span className="display">match</span> better.</h2>
       </Reveal>
       <div ref={ref} className="relative mt-14">
         <svg className="absolute left-[19px] top-4 hidden h-[calc(100%-2rem)] w-1 md:block" preserveAspectRatio="none" viewBox="0 0 2 100">
@@ -140,8 +137,8 @@ function Loop() {
           {steps.map((s, i) => (
             <Reveal key={s.t} delay={0.05}>
               <div className="flex items-start gap-5 md:pl-0">
-                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-accent"><s.icon size={17} /></span>
-                <div className="card flex-1 p-5">
+                <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border-strong bg-surface text-accent"><s.icon size={17} /></span>
+                <div className="flex-1 border-b border-border pb-8 pt-1.5">
                   <div className="flex items-baseline gap-3"><span className="num text-xs text-faint">0{i + 1}</span><h3 className="tight text-xl font-semibold">{s.t}</h3></div>
                   <p className="mt-1.5 text-muted">{s.d}</p>
                 </div>
@@ -192,13 +189,13 @@ function Features() {
   return (
     <section id="features" className="mx-auto max-w-[1200px] px-4 pb-24 md:px-6 md:pb-32">
       <Reveal>
-        <p className="text-xs font-medium uppercase tracking-[0.1em] text-accent">Features</p>
-        <h2 className="tight mt-3 max-w-2xl text-4xl font-semibold md:text-5xl">Quiet surface. <span className="display text-accent">Dramatic</span> moments.</h2>
+        <p className="text-[11px] uppercase text-faint">Features</p>
+        <h2 className="tight mt-3 max-w-2xl text-4xl font-semibold md:text-5xl">Built around the evidence.</h2>
       </Reveal>
       <div className="mt-12 grid gap-4 md:grid-cols-6">
         {f.map((x, i) => (
           <Reveal key={x.t} delay={i * 0.05} className={x.span}>
-            <SpotCard className="flex h-full min-h-[220px] flex-col justify-between p-6" whileHover={{ y: -3 }}>
+            <SpotCard className="flex h-full min-h-[220px] flex-col justify-between p-6">
               <div>
                 {x.icon && <x.icon size={20} className="mb-4 text-accent" />}
                 <h3 className="tight text-lg font-semibold">{x.t}</h3>
@@ -244,7 +241,7 @@ function Cta() {
     <section className="relative overflow-hidden border-t border-border">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'var(--glow)' }} />
       <Reveal className="relative mx-auto max-w-3xl px-4 py-24 text-center md:py-32">
-        <h2 className="tight text-4xl font-semibold md:text-6xl">Stop claiming. Start <span className="display text-accent">proving.</span></h2>
+        <h2 className="tight text-4xl font-semibold md:text-6xl">Stop claiming. Start <span className="display">proving.</span></h2>
         <p className="mx-auto mt-5 max-w-md text-muted">Try the full loop with demo data in under two minutes.</p>
         <div className="mt-8 flex justify-center gap-3"><LinkButton to="/signup" variant="primary" size="lg">Get started free <ArrowRight size={16} /></LinkButton></div>
       </Reveal>

@@ -1,70 +1,77 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/geist-mono';
-@import '@fontsource/instrument-serif/400-italic.css';
-@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/400-italic.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource-variable/newsreader/opsz.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/*
+ * "Paper & ink": warm graphite at night, off-white paper by day.
+ * Depth comes from hairlines and a single soft drop, never from glow.
+ */
 :root,
 [data-theme='dark'] {
-  --bg: #0b0b0d;
-  --surface: #131316;
-  --surface-2: #1b1b1f;
-  --surface-3: #232328;
-  --border: #26262b;
-  --border-strong: #35353c;
-  --text: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --text-faint: #71717a;
-  --accent: #ff6a3d;
-  --accent-fg: #0b0b0d;
-  --accent-soft: rgb(255 106 61 / 0.12);
-  --ev-self: #71717a;
-  --ev-github: #3b82f6;
-  --ev-interview: #a855f7;
-  --ev-task: #22c55e;
-  --danger: #ef4444;
-  --warn: #f59e0b;
-  --good: #22c55e;
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --shadow: 0 10px 40px -12px rgb(0 0 0 / 0.6);
-  --glass: rgb(11 11 13 / 0.7);
-  --glow: radial-gradient(60% 50% at 50% 0%, rgb(255 106 61 / 0.14), transparent 70%);
+  --bg: #141311;
+  --surface: #1b1a17;
+  --surface-2: #22211d;
+  --surface-3: #2c2a26;
+  --border: #2e2c28;
+  --border-strong: #423f39;
+  --text: #ede9e1;
+  --text-muted: #a8a299;
+  --text-faint: #75706a;
+  --accent: #ee7044;
+  --accent-fg: #17120f;
+  --accent-soft: rgb(238 112 68 / 0.12);
+  --ev-self: #8a847b;
+  --ev-github: #6b9bea;
+  --ev-interview: #b18ce8;
+  --ev-task: #5fb67e;
+  --danger: #e2685d;
+  --warn: #d9a441;
+  --good: #5fb67e;
+  --highlight: 0 0 0 0 transparent;
+  --shadow: 0 1px 0 rgb(0 0 0 / 0.25), 0 8px 24px -16px rgb(0 0 0 / 0.7);
+  --glass: rgb(20 19 17 / 0.88);
+  --glow: none;
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg: #fafaf9;
-  --surface: #ffffff;
-  --surface-2: #f4f4f2;
-  --surface-3: #ebebe8;
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  --text: #18181b;
-  --text-muted: #52525b;
-  --text-faint: #8a8a93;
-  --accent: #e8542a;
-  --accent-fg: #ffffff;
-  --accent-soft: rgb(232 84 42 / 0.09);
-  --ev-self: #71717a;
-  --ev-github: #2563eb;
-  --ev-interview: #9333ea;
-  --ev-task: #16a34a;
-  --danger: #dc2626;
-  --warn: #d97706;
-  --good: #16a34a;
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.9);
-  --shadow: 0 10px 40px -14px rgb(24 24 27 / 0.18);
-  --glass: rgb(250 250 249 / 0.72);
-  --glow: radial-gradient(60% 50% at 50% 0%, rgb(232 84 42 / 0.12), transparent 70%);
+  --bg: #f4f1ea;
+  --surface: #fffdf8;
+  --surface-2: #f8f5ee;
+  --surface-3: #ece7dc;
+  --border: #e2ddd1;
+  --border-strong: #cdc6b7;
+  --text: #1d1b17;
+  --text-muted: #5b564d;
+  --text-faint: #8d877c;
+  --accent: #c8501f;
+  --accent-fg: #fffdf8;
+  --accent-soft: rgb(200 80 31 / 0.08);
+  --ev-self: #8d877c;
+  --ev-github: #2f62c9;
+  --ev-interview: #7b47c9;
+  --ev-task: #2e8150;
+  --danger: #c23b2f;
+  --warn: #a8700c;
+  --good: #2e8150;
+  --highlight: 0 1px 1px rgb(29 27 23 / 0.04);
+  --shadow: 0 1px 2px rgb(29 27 23 / 0.06), 0 10px 24px -18px rgb(29 27 23 / 0.35);
+  --glass: rgb(244 241 234 / 0.9);
+  --glow: none;
   color-scheme: light;
 }
 
 @theme inline {
-  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
-  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-display: 'Newsreader Variable', Georgia, serif;
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -84,8 +91,8 @@
   --color-danger: var(--danger);
   --color-warn: var(--warn);
   --color-good: var(--good);
-  --radius-card: 10px;
-  --radius-input: 8px;
+  --radius-card: 6px;
+  --radius-input: 5px;
 }
 
 * {
@@ -112,8 +119,7 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.5;
-  font-feature-settings: 'cv11', 'ss01';
+  line-height: 1.55;
   transition:
     background-color 0.35s ease,
     color 0.35s ease;
@@ -134,74 +140,87 @@ body {
 .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
-.display {
+/* Titles are set in a text serif, upright. No single italic "magic word". */
+h1,
+.serif {
   font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-weight: 500;
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+  line-height: 1.08;
+}
+h2.text-2xl,
+h2.text-3xl,
+h2.text-4xl,
+h2.text-5xl {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.012em;
+}
+.display {
+  font: inherit;
+  color: inherit;
 }
 
 .tight {
-  letter-spacing: -0.025em;
+  letter-spacing: -0.01em;
 }
 
-/* subtle warm noise on the page */
-.noise::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+/* Big figures are set in the serif with lining numerals; small ones stay mono. */
+.num:is(.text-3xl, .text-4xl, .text-5xl),
+:is(.text-3xl, .text-4xl, .text-5xl) > .num,
+.num.text-2xl {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
 }
-[data-theme='light'] .noise::before {
-  opacity: 0.05;
-  mix-blend-mode: multiply;
+
+/* Small caps-style labels read like a spec sheet, not a landing page. */
+.uppercase {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+/* kept as a hook for layouts; the page is plain on purpose */
+.noise {
+  position: relative;
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   box-shadow: var(--highlight);
 }
 .card-hover {
   transition:
-    border-color 0.2s ease,
-    transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.25s ease;
+    border-color 0.15s ease,
+    box-shadow 0.2s ease;
 }
 .card-hover:hover {
   border-color: var(--border-strong);
-  box-shadow: var(--highlight), var(--shadow);
+  box-shadow: var(--shadow);
 }
 
 .glass {
   background: var(--glass);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-/* spotlight that follows the cursor on cards */
 .spotlight {
   position: relative;
-  overflow: hidden;
 }
-.spotlight::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--accent-soft), transparent 70%);
-}
-.spotlight:hover::after {
-  opacity: 1;
+
+/* a hairline rule used under section labels */
+.rule {
+  height: 1px;
+  background: var(--border);
 }
 
 /* shimmer skeleton */
@@ -263,13 +282,7 @@ body {
 }
 
 .grid-bg {
-  background-image:
-    linear-gradient(to right, var(--border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(60% 60% at 50% 0%, #000 0%, transparent 75%);
-  -webkit-mask-image: radial-gradient(60% 60% at 50% 0%, #000 0%, transparent 75%);
-  opacity: 0.5;
+  display: none;
 }
 
 /* thin scrollbars */
@@ -286,6 +299,7 @@ body {
 }
 [cmdk-group-heading] {
   padding: 8px 12px 4px;
+  font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;

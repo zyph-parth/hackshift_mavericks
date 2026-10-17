@@ -61,7 +61,7 @@ export function MatchScoreRing({
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor={color} stopOpacity=".55" />
+            <stop offset="100%" stopColor={color} />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-3)" strokeWidth={stroke} />
@@ -77,7 +77,6 @@ export function MatchScoreRing({
           initial={{ strokeDashoffset: reduce ? c * (1 - score / 100) : c }}
           animate={{ strokeDashoffset: c * (1 - score / 100) }}
           transition={{ duration: 1.1, delay, ease: [0.2, 0.8, 0.2, 1] }}
-          style={{ filter: `drop-shadow(0 0 6px color-mix(in srgb, ${color} 50%, transparent))` }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
@@ -205,12 +204,12 @@ export function SkillChip({
         perspective: 400,
       }}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border bg-surface-2 font-medium',
-        size === 'sm' ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs',
+        'inline-flex items-center gap-1.5 rounded-[4px] border bg-surface-2 font-medium',
+        size === 'sm' ? 'px-1.5 py-px text-[11px]' : 'px-2 py-0.5 text-xs',
         missing && 'border-dashed border-border-strong bg-transparent text-faint',
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: missing ? 'transparent' : color, boxShadow: missing ? 'inset 0 0 0 1px var(--text-faint)' : `0 0 8px ${color}` }} />
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: missing ? 'transparent' : color, boxShadow: missing ? 'inset 0 0 0 1px var(--text-faint)' : undefined }} />
       {name}
       {level !== undefined && !missing && <span className="num text-faint">{level}</span>}
     </motion.span>

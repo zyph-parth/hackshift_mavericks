@@ -77,7 +77,7 @@ export default function Auth({ mode }: { mode: 'login' | 'signup' }) {
         <div className="flex items-center justify-between"><Link to="/"><Logo /></Link><ThemeToggle /></div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: EASE }}>
-            <h1 className="tight text-3xl font-semibold md:text-4xl">{signup ? <>Start with <span className="display text-accent">proof.</span></> : <>Welcome <span className="display text-accent">back.</span></>}</h1>
+            <h1 className="tight text-3xl font-semibold md:text-4xl">{signup ? <>Start with <span className="display">proof.</span></> : <>Welcome <span className="display">back.</span></>}</h1>
             <p className="mt-2 text-muted">{signup ? 'Create your account. It takes 20 seconds.' : 'Sign in to continue your loop.'}</p>
 
             <form className="mt-8 space-y-4" onSubmit={(e) => { e.preventDefault(); submit(); }} noValidate>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, MapPin, Rocket, Search, Sparkles, Wallet } from 'lucide-react';
+import { Check, MapPin, Rocket, Search, Asterisk, Wallet } from 'lucide-react';
 import { MATCH_WEIGHTS } from '@launchloop/shared';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Input, PageHeader, Segmented, Sheet, Skeleton, Switch, Textarea } from '@/components/ui';
 import { CountUp, Meter, MatchScoreRing, SkillChip } from '@/components/signature';
@@ -43,7 +43,7 @@ function JobCard({ r, i, onOpen }: { r: JobRow; i: number; onOpen: () => void })
                 {m.matched.slice(0, 3).map((s) => <SkillChip key={s.name} size="sm" name={s.name} evidence={s.evidence} />)}
                 {m.missing.slice(0, 2).map((s) => <SkillChip key={s} size="sm" name={s} missing />)}
               </div>
-              <p className="mt-3 flex items-start gap-1.5 text-[13px] text-muted"><Sparkles size={13} className="mt-0.5 shrink-0 text-accent" />{why(r)}</p>
+              <p className="mt-3 flex items-start gap-1.5 text-[13px] text-muted"><Asterisk size={13} className="mt-0.5 shrink-0 text-accent" />{why(r)}</p>
             </>
           )}
         </div>
@@ -118,7 +118,7 @@ function Detail({ row, onClose }: { row: JobRow | null; onClose: () => void }) {
             </>
           )}
           <section>
-            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted"><Sparkles size={12} className="text-accent" /> Your application note</h4>
+            <h4 className="mb-3 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted"><Asterisk size={12} className="text-accent" /> Your application note</h4>
             {row.applied ? <p className="rounded-lg border border-good/30 bg-good/5 p-3 text-sm text-muted">{row.applied.note}</p> : pitch.isLoading ? <Skeleton className="h-28" /> : (
               <><Textarea rows={5} value={text} onChange={(e) => setNote(e.target.value)} aria-label="Application note" /><p className="mt-1.5 text-xs text-faint">Drafted from your verified evidence. Edit freely.</p></>
             )}
@@ -161,11 +161,11 @@ export default function Jobs() {
           <Card className="space-y-4 p-4">
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Type</p>
-              <div className="flex flex-wrap gap-1.5">{(['all', 'Full-time', 'Internship', 'Contract'] as const).map((t) => <button key={t} onClick={() => setType(t)} className={cn('rounded-full border px-2.5 py-1 text-xs transition', type === t ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-text')}>{t === 'all' ? 'All' : t}</button>)}</div>
+              <div className="flex flex-wrap gap-1.5">{(['all', 'Full-time', 'Internship', 'Contract'] as const).map((t) => <button key={t} onClick={() => setType(t)} className={cn('rounded-[4px] border px-2 py-0.5 text-xs transition', type === t ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-text')}>{t === 'all' ? 'All' : t}</button>)}</div>
             </div>
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">Stage</p>
-              <div className="flex flex-wrap gap-1.5">{(['all', 'Pre-seed', 'Seed', 'Series A'] as const).map((t) => <button key={t} onClick={() => setStage(t)} className={cn('rounded-full border px-2.5 py-1 text-xs transition', stage === t ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-text')}>{t === 'all' ? 'All' : t}</button>)}</div>
+              <div className="flex flex-wrap gap-1.5">{(['all', 'Pre-seed', 'Seed', 'Series A'] as const).map((t) => <button key={t} onClick={() => setStage(t)} className={cn('rounded-[4px] border px-2 py-0.5 text-xs transition', stage === t ? 'border-accent bg-accent-soft text-accent' : 'border-border text-muted hover:text-text')}>{t === 'all' ? 'All' : t}</button>)}</div>
             </div>
             <label className="flex cursor-pointer items-center justify-between text-sm">Remote only<Switch on={remote} onChange={setRemote} label="Remote only" /></label>
             <label className="flex cursor-pointer items-center justify-between text-sm">Offers equity<Switch on={equity} onChange={setEquity} label="Offers equity" /></label>
